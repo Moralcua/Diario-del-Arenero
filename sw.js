@@ -1,8 +1,8 @@
-/* Diario del arenero — service worker
+/* Diario del gato — service worker
    Cachea la app para que abra y funcione sin conexión. */
 
-var CACHE = 'arenero-v1';
-var CDN   = 'arenero-cdn-v1';
+var CACHE = 'gato-v7';
+var CDN   = 'gato-cdn-v1';
 var SHELL = ['./', './index.html', './manifest.webmanifest', './icon-192.png', './icon-512.png'];
 
 self.addEventListener('install', function (e) {

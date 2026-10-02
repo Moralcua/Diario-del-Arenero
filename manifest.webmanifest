@@ -1,7 +1,7 @@
 {
-  "name": "Diario del arenero",
-  "short_name": "Arenero",
-  "description": "Registro de visitas al arenero del gato",
+  "name": "Diario del gato",
+  "short_name": "Diario gato",
+  "description": "Arenero, dieta, asma y medicación del gato",
   "start_url": "./",
   "scope": "./",
   "display": "standalone",
