@@ -427,6 +427,26 @@ nav.tabs button{font-size:.68rem}
 .acct b{display:block;font-size:.95rem;margin:1px 0 3px;word-break:break-all}
 .acctlinks{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:6px;margin-bottom:7px}
 .acctlinks .linkbtn{margin:0;padding:10px 4px;font-size:.8rem}
+
+/* vómitos */
+.entry.vom,.entry.risk{border-left-width:4px;border-left-style:solid}
+.entry.risk{border-left-style:dashed}
+
+/* panel del vómito */
+.vpanel{--k:var(--kl);margin:4px 0 12px;padding:12px;border-radius:12px;border:1.5px solid color-mix(in srgb,var(--k) 45%,var(--line));background:color-mix(in srgb,var(--k) 7%,var(--surface))}
+@media (prefers-color-scheme:dark){:root:not([data-theme="light"]) .vpanel{--k:var(--kd)}}
+:root[data-theme="dark"] .vpanel{--k:var(--kd)}
+.vpanel h3{margin:0 0 8px;font-size:.88rem}
+.vrow{display:grid;grid-template-columns:auto 1fr auto;gap:8px;padding:6px 4px;border-bottom:1px solid var(--line);font-size:.84rem;align-items:baseline}
+.vrow .vt{font-variant-numeric:tabular-nums;font-weight:600;color:var(--ink-2)}
+.vrow .vk{font-variant-numeric:tabular-nums;font-weight:700}
+.vrow.near{background:color-mix(in srgb,var(--k) 16%,transparent);border-radius:7px}
+.vleg{margin:6px 2px 10px}
+.vlab{display:block;font-size:.82rem;font-weight:600;color:var(--ink-2);margin:10px 0 5px}
+.vlab span{font-weight:400;color:var(--ink-3)}
+.vin{display:flex;align-items:center;gap:8px;margin-bottom:8px}
+.vin input{width:120px;padding:10px;border-radius:10px;border:1px solid var(--line);background:var(--surface);font-size:1rem;font-weight:700;text-align:center}
+.vin span{color:var(--ink-2);font-weight:600}
 </style>
 </head>
 <body>
@@ -527,7 +547,7 @@ function lsSet(k, v){ try { localStorage.setItem(k, JSON.stringify(v)); } catch(
 /* ============ seguimientos y tipos ============ */
 var TRACKERS = [
   { id:'arenero',    label:'Arenero',    c:['#0F6E62','#3EBCA2'], kinds:['orina','intento','caca','otro'],     save:'Guardar visita',   unit:'visita' },
-  { id:'dieta',      label:'Dieta',      c:['#4F7A1F','#9CCB5E'], kinds:['comida','peso','duracion','otro'],   save:'Guardar',          unit:'registro' },
+  { id:'dieta',      label:'Dieta',      c:['#4F7A1F','#9CCB5E'], kinds:['comida','vomito','peso','duracion','otro'],   save:'Guardar',          unit:'registro' },
   { id:'asma',       label:'Asma',       c:['#1F6FA3','#6BB6E6'], kinds:['tos','jadeo','sonido','otro'],       save:'Guardar episodio', unit:'episodio' },
   { id:'medicacion', label:'Medicación', c:['#6B3FA0','#B79BE0'], kinds:['medicamento','suplemento','otro'],   save:'Guardar toma',     unit:'toma' }
 ];
@@ -536,6 +556,7 @@ var KINDS = {
   intento:     { label:'Intento',     group:'Intentos sin resultado', c:['#A32F49','#EE879E'], g:'dropEmpty' },
   caca:        { label:'Caca',        group:'Caca',                   c:['#7C5433','#C68C5C'], g:'pile' },
   comida:      { label:'Comida',      group:'Comida',                 c:['#4F7A1F','#9CCB5E'], g:'bowl' },
+  vomito:      { label:'Vómito',      group:'Vómitos',                c:['#8C7A1E','#D6C25A'], g:'splash' },
   peso:        { label:'Peso',        group:'Peso',                   c:['#8A4B9C','#CD9BDB'], g:'scale', measure:true },
   duracion:    { label:'Duración',    group:'Comedero',               c:['#5E6470','#A7AEBB'], g:'bowlEmpty', duration:true },
   tos:         { label:'Tos',         group:'Tos',                    c:['#B4531F','#F29A66'], g:'cough' },
@@ -576,6 +597,7 @@ function defaultTags(){
     { id:'d_ng',  tracker:'dieta', label:'Natural Greatness Urinary', kind:'comida', w:2, unit:'g', qty:15,      kcal:422 },
     { id:'d_ch',  tracker:'dieta', label:'Churu Hacendado',           kind:'comida', w:1, unit:'g', qty:7.5,     kcal:65,  portion:'medio sobre' },
     { id:'d_mo',  tracker:'dieta', label:'Moment Urinary',            kind:'comida', w:1, unit:'g', qty:0.21875, kcal:457, portion:'1 croqueta' },
+    { id:'d_vom', tracker:'dieta', label:'Vómito',                    kind:'vomito', w:2 },
     { id:'d_peso', tracker:'dieta', label:'Peso',                     kind:'peso', w:2, unit:'kg' },
     { id:'d_vac', tracker:'dieta', label:'Comedero vacío',            kind:'duracion', w:2 },
 
@@ -625,6 +647,8 @@ function glyph(kind, w){
       return '<svg '+a+L+' stroke-width="2"><path d="M3 12h3l2.2-6.5 3.4 13 3.2-10 2.2 3.5H21"/></svg>';
     case 'pill':
       return '<svg '+a+F+'><rect x="2.5" y="8" width="19" height="8" rx="4"/><rect x="12" y="8" width="1.2" height="8" fill="#fff" opacity=".55"/></svg>';
+    case 'splash':
+      return '<svg '+a+L+'><path d="M8 4.5c1.2 2.2 4 3 4 6.5"/><path d="M15.5 4c-.8 2.4-3.5 3.6-3.5 7"/><path d="M3.5 17.5c2-1.9 4-2.8 6.2-1.6 1.9 1 3.6 1 5.4-.2 1.6-1 3.4-.9 5.4.8"/><circle cx="7" cy="20" r="1" fill="currentColor"/><circle cx="17" cy="20.3" r="1" fill="currentColor"/></svg>';
     case 'scale':
       return '<svg '+a+L+'><rect x="3" y="4" width="18" height="16" rx="4"/><path d="M8 9.5a5 5 0 0 1 8 0"/><path d="M12 9.5l1.6-1.8"/></svg>';
     case 'dropper':
@@ -711,9 +735,10 @@ function dayStatus(list){
   var a = agg(list || []);
   if (!a.kindEv.comida) return null;
   var missing = Object.keys(a.kcalMissing).length > 0;
-  if (a.kcal > L) return { st:'over', kcal:a.kcal, diff:a.kcal - L, L:L };
-  if (missing) return { st:'unknown', kcal:a.kcal, L:L };
-  return { st:'ok', kcal:a.kcal, diff:L - a.kcal, L:L };
+  var net = netKcal(a);
+  if (net > L) return { st:'over', kcal:net, diff:net - L, L:L };
+  if (missing) return { st:'unknown', kcal:net, L:L };
+  return { st:'ok', kcal:net, diff:L - net, L:L };
 }
 function statusText(s){
   if (!s) return '';
@@ -762,6 +787,88 @@ function complianceLine(c){
   if (c.over) t += ' · ' + c.over + ' por encima';
   if (c.unk) t += ' · ' + c.unk + ' sin datos completos';
   return t + ' · media ' + Math.round(c.avg) + ' kcal';
+}
+
+/* ---- vómitos: comidas de la hora anterior quedan «en duda» ---- */
+var VOMIT_WINDOW = 60 * 60000;
+function hasEstimate(v){ return typeof v.kcalLost === 'number' && v.kcalLost >= 0; }
+function netKcal(a){ return Math.max(0, a.kcal - (a.kcalLost || 0)); }
+var _vl = null;
+function hasKind(e, kind){ return Object.keys(e.tags || {}).some(function(id){ var t = tagById(id); return t && t.kind === kind; }); }
+function isVomit(e){ return hasKind(e, 'vomito'); }
+/** byMeal[id] = vómitos que siguieron a esa comida; byVomit[id] = comidas de la hora anterior. */
+function vomitLinks(){
+  var vk = S.tags.filter(function(t){ return t.kind === 'vomito'; }).map(function(t){ return t.id; }).join(',');
+  if (_vl && _vl.ref === S.entries && _vl.vk === vk) return _vl;
+  var list = entriesOf('dieta'), vom = list.filter(isVomit), food = list.filter(function(e){ return hasKind(e, 'comida'); });
+  var byMeal = {}, byVomit = {}, byMealOpen = {};
+  vom.forEach(function(v){
+    var vs = entryStart(v), ve = entryEnd(v);
+    food.forEach(function(f){
+      // pudo comer en la hora anterior al vómito: empezó antes de que acabara y terminó como mucho 60 min antes de que empezara
+      if (entryStart(f) <= ve && entryEnd(f) >= vs - VOMIT_WINDOW){
+        (byMeal[f.id] = byMeal[f.id] || []).push(v);
+        if (!hasEstimate(v)) (byMealOpen[f.id] = byMealOpen[f.id] || []).push(v);
+        (byVomit[v.id] = byVomit[v.id] || []).push(f);
+      }
+    });
+  });
+  _vl = { ref:S.entries, vk:vk, byMeal:byMeal, byVomit:byVomit, byMealOpen:byMealOpen };
+  return _vl;
+}
+function vomitNote(a){
+  var x = [];
+  if (a.kcalLost > 0) x.push('−' + fmtKcal(a.kcalLost) + ' estimadas');
+  if (a.kcalRisk > 0) x.push(fmtKcal(a.kcalRisk) + ' en duda');
+  return x.length ? ' (' + x.join(', ') + ')' : '';
+}
+function foodLabels(m){
+  return Object.keys(m.tags || {}).map(function(id){
+    var t = tagById(id); if (!t || t.kind !== 'comida') return null;
+    return t.label + ' ' + amtLabel(t, m.tags[id]);
+  }).filter(Boolean).join(' + ');
+}
+/* ---- medicación tomada en las 2 h anteriores a un vómito: «dudosa» ---- */
+var MED_WINDOW = 120 * 60000;
+var _ml = null;
+/** byMed[id] = vómitos que siguieron a esa toma; byVomitMed[id] = tomas de las 2 h anteriores. */
+function medLinks(){
+  if (_ml && _ml.ref === S.entries) return _ml;
+  var vom = entriesOf('dieta').filter(isVomit), meds = entriesOf('medicacion');
+  var byMed = {}, byVomitMed = {};
+  vom.forEach(function(v){
+    var vs = entryStart(v), ve = entryEnd(v);
+    meds.forEach(function(m){
+      // pudo tomarla en las 2 h anteriores: empezó antes de que acabara el vómito y terminó como mucho 2 h antes de que empezara
+      if (entryStart(m) <= ve && entryEnd(m) >= vs - MED_WINDOW){
+        (byMed[m.id] = byMed[m.id] || []).push(v);
+        (byVomitMed[v.id] = byVomitMed[v.id] || []).push(m);
+      }
+    });
+  });
+  _ml = { ref:S.entries, byMed:byMed, byVomitMed:byVomitMed };
+  return _ml;
+}
+function medLabels(m){
+  return Object.keys(m.tags || {}).map(function(id){ var t = tagById(id); return (t ? t.label : 'borrada') + (m.tags[id] > 1 ? ' ×' + m.tags[id] : ''); }).join(' + ');
+}
+function medDesc(m){ return medLabels(m) + ' (' + timeLabel(m) + ')'; }
+function afterText(dose, v){
+  var mins = Math.round((entryStart(v) - entryEnd(dose)) / 60000);
+  if (mins <= 0) return 'vómito en la misma franja';
+  return 'vómito ' + (mins < 60 ? mins + ' min' : fmtDur(mins * 60000)) + ' después';
+}
+function doubtfulRecent(){
+  var since = Date.now() - 24*3600000, ML = medLinks();
+  return entriesOf('medicacion').filter(function(m){ return ML.byMed[m.id] && entryEnd(m) >= since; });
+}
+
+function mealDesc(m){
+  var parts = Object.keys(m.tags || {}).map(function(id){
+    var t = tagById(id); if (!t || t.kind !== 'comida') return null;
+    return t.label + ' ' + amtLabel(t, m.tags[id]);
+  }).filter(Boolean);
+  return parts.join(' + ') + ' (' + timeLabel(m) + ')';
 }
 
 function fmtKcal(k){ return (k < 10 ? fmtNum(Math.round(k * 10) / 10) : String(Math.round(k))) + ' kcal'; }
@@ -831,7 +938,7 @@ function blankDraft(tr){
     tracker:tr, mode:'point', ts:new Date(), tsEnd:null, tags:{},
     place: tr === 'arenero' ? lsGet('lastPlace', null) : null, note:'',
     photo:null, driveId:null, thumbDriveId:null, preview:null, uploading:null, pending:null,
-    video:null, videoDriveId:null, videoPosterDriveId:null, vbusy:null
+    video:null, videoDriveId:null, videoPosterDriveId:null, vbusy:null, kcalLost:null
   };
 }
 function curDraft(){
@@ -841,7 +948,8 @@ function curDraft(){
 
 /* ============ agregados ============ */
 function agg(list){
-  var o = { n:0, kinds:{}, kindEv:{}, units:{}, tags:{}, durMs:0, durMax:0, weights:[], kcal:0, kcalBy:{}, kcalMissing:{} };
+  var o = { n:0, kinds:{}, kindEv:{}, units:{}, tags:{}, durMs:0, durMax:0, weights:[], kcal:0, kcalBy:{}, kcalMissing:{}, kcalRisk:0, kcalLost:0 };
+  var VB = (list && list.length && list[0] && list[0].id) ? vomitLinks().byMealOpen : {};
   (list || []).forEach(function(e){
     o.n++;
     var dur = false, seen = {};
@@ -852,13 +960,14 @@ function agg(list){
       o.tags[id] = (o.tags[id] || 0) + v;
       if (t && t.kind === 'comida'){
         var kc = kcalOf(t, v);
-        if (kc == null) o.kcalMissing[id] = 1; else { o.kcal += kc; o.kcalBy[id] = (o.kcalBy[id] || 0) + kc; }
+        if (kc == null) o.kcalMissing[id] = 1; else { o.kcal += kc; o.kcalBy[id] = (o.kcalBy[id] || 0) + kc; if (VB[e.id]) o.kcalRisk += kc; }
       }
       if (t && t.unit) o.units[t.unit] = (o.units[t.unit] || 0) + v;
       else o.kinds[k] = (o.kinds[k] || 0) + v;
       if (!seen[k]){ o.kindEv[k] = (o.kindEv[k] || 0) + 1; seen[k] = 1; }
       if (kindOf(k).duration) dur = true;
     });
+    if (hasEstimate(e) && isVomit(e)) o.kcalLost += e.kcalLost;
     if (dur && isRange(e)){
       var ms = entryEnd(e) - entryStart(e);
       o.durMs += ms; if (ms > o.durMax) o.durMax = ms;
@@ -976,6 +1085,7 @@ function srvEntry(e){
     tags:e.tags || {}, place:e.place || null, note:e.note || '',
     pid:e.photo || null, driveId:e.driveId || null, thumbDriveId:e.thumbDriveId || null, photoPurged:!!e.photoPurged,
     vid:e.video || null, videoDriveId:e.videoDriveId || null, videoPosterDriveId:e.videoPosterDriveId || null, videoPurged:!!e.videoPurged,
+    kcalLost: typeof e.kcalLost === 'number' ? e.kcalLost : null,
     updatedAt:e.updatedAt || Date.now()
   };
 }
@@ -989,6 +1099,7 @@ function normEntry(e){
     tags:e.tags || {}, place:e.place || null, note:e.note || '',
     photo:e.pid || e.photo || null, driveId:e.driveId || null, thumbDriveId:e.thumbDriveId || null, photoPurged:!!e.photoPurged,
     video:e.vid || e.video || null, videoDriveId:e.videoDriveId || null, videoPosterDriveId:e.videoPosterDriveId || null, videoPurged:!!e.videoPurged,
+    kcalLost: typeof e.kcalLost === 'number' ? e.kcalLost : null,
     updatedAt:e.updatedAt || 0
   };
 }
@@ -1237,7 +1348,17 @@ function migrateConfig(c){
     });
     changed = true;
   }
-  cfg.v = 6;
+  if (ver < 7){
+    // v7: etiqueta Vómito en la dieta, después de las comidas
+    if (!have.d_vom){
+      var vom = defaultTags().filter(function(t){ return t.id === 'd_vom'; })[0];
+      var at7 = -1;
+      cfg.tags.forEach(function(t, i){ if (t.tracker === 'dieta' && t.kind === 'comida') at7 = i; });
+      cfg.tags.splice(at7 + 1, 0, vom); have.d_vom = 1;
+    }
+    changed = true;
+  }
+  cfg.v = 7;
   cfg._changed = changed;
   return cfg;
 }
@@ -1248,7 +1369,7 @@ function applyConfig(cfg){
 }
 function saveCfg(){
   S.lastCfgWrite = Date.now();
-  var cfg = { v:6, tags:S.tags, places:S.places, app:S.app };
+  var cfg = { v:7, tags:S.tags, places:S.places, app:S.app };
   return idbPut('kv', cfg, 'config').then(function(){ return enqueue({ t:'config', id:'config' }); });
 }
 function saveTags(){ return saveCfg(); }
@@ -2197,7 +2318,8 @@ function summaryLine(tr, list){
     Object.keys(a.units).forEach(function(u){ parts.push(fmtAmt(a.units[u], u)); });
     var ds = dayStatus(list);
     if (ds) parts.push(statusText(ds));
-    else if (a.kcal > 0) parts.push(fmtKcal(a.kcal) + (Object.keys(a.kcalMissing).length ? ' (incompleto)' : ''));
+    else if (a.kcal > 0) parts.push(fmtKcal(netKcal(a)) + (Object.keys(a.kcalMissing).length ? ' (incompleto)' : ''));
+    if (a.kinds.vomito) parts.push(plural(a.kinds.vomito, 'vómito', 'vómitos') + vomitNote(a));
     if (a.weights.length) parts.push('pesa ' + fmtKg(a.weights[a.weights.length - 1].v) + ' kg');
     if (a.durMs) parts.push('vacío ' + fmtDur(a.durMs));
     if (!parts.length) parts.push(plural(a.n, 'registro', 'registros'));
@@ -2210,6 +2332,8 @@ function summaryLine(tr, list){
   } else {
     if (!a.n) return 'Sin tomas';
     Object.keys(a.tags).forEach(function(id){ var t = tagById(id); parts.push((t ? t.label : 'borrada') + (a.tags[id] > 1 ? ' ×' + a.tags[id] : '')); });
+    var nd = list.filter(function(e){ return e.id && medLinks().byMed[e.id]; }).length;
+    if (nd) parts.push(nd + (nd === 1 ? ' dudosa' : ' dudosas') + ' por vómito');
   }
   return parts.join(' · ');
 }
@@ -2250,7 +2374,7 @@ function renderHoy(){
     var sum;
     if (t.id === 'medicacion' && todays.length){
       sum = todays.map(function(e){
-        return Object.keys(e.tags || {}).map(function(id){ var tg = tagById(id); return tg ? tg.label : 'borrada'; }).join(' + ') + ' (' + timeLabel(e) + ')';
+        return Object.keys(e.tags || {}).map(function(id){ var tg = tagById(id); return tg ? tg.label : 'borrada'; }).join(' + ') + ' (' + timeLabel(e) + (medLinks().byMed[e.id] ? ', dudosa' : '') + ')';
       }).join(' · ');
     } else sum = summaryLine(t.id, todays);
     var last = latest(list);
@@ -2309,7 +2433,7 @@ function logHTML(){
   }
   h += '<div class="sect" data-time></div>';
   h += '<div class="sect"><h2>'+PROMPT[tr]+'<span class="hint">'+(tr === 'dieta' ? 'toca la cantidad para cambiarla' : 'toca el número para sumar otra')+'</span></h2>' + chipsHTML(tr) + '</div>';
-  if (tr === 'dieta') h += '<div class="kmeter" data-kmeter></div>';
+  if (tr === 'dieta') h += '<div data-vpanel></div><div class="kmeter" data-kmeter></div>';
   if (tr === 'arenero' && activePlaces().length) h += placesHTML();
   h += '<div class="sect">' + extrasHTML(true) +
     '<textarea class="note" data-note placeholder="'+esc(NOTE_PH[tr])+'"'+(d.note ? '' : ' hidden')+'>'+esc(d.note)+'</textarea>' +
@@ -2329,24 +2453,76 @@ function bindLog(){
   paintMedia(d);
   if (!v._kmBound){
     v._kmBound = true;
-    v.addEventListener('change', function(ev){ if (ev.target && ev.target.matches && ev.target.matches('[data-dt]')) paintKMeter(); });
-    v.addEventListener('click', function(ev){ if (ev.target && ev.target.closest && ev.target.closest('[data-nudge],[data-preset],[data-mode]')) setTimeout(paintKMeter, 0); });
+    v.addEventListener('change', function(ev){ if (ev.target && ev.target.matches && ev.target.matches('[data-dt]')) paintKMeter(); paintVPanel($('#view-log'), curDraft()); });
+    v.addEventListener('click', function(ev){ if (ev.target && ev.target.closest && ev.target.closest('[data-nudge],[data-preset],[data-mode]')) setTimeout(function(){ paintKMeter(); paintVPanel($('#view-log'), curDraft()); }, 0); });
   }
   $('#saveBtn').onclick = saveDraft;
 }
 function paintSaveBtn(){
   var b = $('#saveBtn');
   if (b && !b._busy) b.disabled = Object.keys(curDraft().tags).length === 0;
+  paintVPanel($('#view-log'), curDraft());
   paintKMeter();
 }
 /** En Dieta: cuánto lleva ese día y cuánto sumaría lo que estás marcando, frente al límite. */
+function draftIsVomit(d){ return Object.keys(d.tags || {}).some(function(id){ var t = tagById(id); return t && t.kind === 'vomito'; }); }
+/** Al marcar Vómito: lo comido en las 3 h anteriores y una casilla para estimar las kcal perdidas. */
+function paintVPanel(root, d){
+  var box = root && root.querySelector('[data-vpanel]');
+  if (!box) return;
+  var cur = box.querySelector('[data-vlost]');
+  if (cur && document.activeElement === cur) return;
+  if (!draftIsVomit(d)){ box.innerHTML = ''; return; }
+  var vS = d.ts.getTime(), vE = (d.mode === 'range' && d.tsEnd && d.tsEnd > d.ts) ? d.tsEnd.getTime() : vS;
+  var meals = entriesOf('dieta').filter(function(e){
+    return e.id !== d.id && hasKind(e, 'comida') && entryStart(e) <= vE && entryEnd(e) >= vS - 3*3600000;
+  }).sort(function(a, b){ return entryStart(b) - entryStart(a); });
+  var hourK = 0;
+  var rows = meals.map(function(m){
+    var k = agg([m]).kcal, near = entryEnd(m) >= vS - VOMIT_WINDOW;
+    if (near) hourK += k;
+    return '<div class="vrow' + (near ? ' near' : '') + '"><span class="vt">' + esc(timeLabel(m)) + '</span><span class="vd">' + esc(foodLabels(m)) + '</span><span class="vk">' + esc(fmtKcal(k)) + '</span></div>';
+  }).join('');
+  var val = (typeof d.kcalLost === 'number') ? fmtNum(d.kcalLost) : '';
+  var btn = function(label, v){ return '<button data-vset="' + v + '">' + esc(label) + '</button>'; };
+  box.innerHTML = '<div class="vpanel" style="' + kstyle(kindOf('vomito').c) + '">' +
+    '<h3>Lo que comió en las 3 horas anteriores</h3>' +
+    (rows || '<p class="tiny muted">No hay comida registrada en las 3 horas anteriores.</p>') +
+    (hourK ? '<p class="tiny muted vleg">Resaltado: la hora anterior, ' + esc(fmtKcal(hourK)) + '.</p>' : '') +
+    (function(){
+      var md = entriesOf('medicacion').filter(function(m){ return entryStart(m) <= vE && entryEnd(m) >= vS - MED_WINDOW; })
+        .sort(function(a, b){ return entryStart(b) - entryStart(a); });
+      if (!md.length) return '';
+      return '<h3 style="margin-top:12px">Medicación en las 2 horas anteriores</h3>' +
+        md.map(function(m){ return '<div class="vrow near"><span class="vt">' + esc(timeLabel(m)) + '</span><span class="vd">' + esc(medLabels(m)) + '</span><span class="vk">dudosa</span></div>'; }).join('') +
+        '<p class="tiny muted vleg">Al guardar, estas tomas quedarán marcadas como dudosas. Si hay que repetir alguna, consúltalo con tu veterinario.</p>';
+    })() +
+    '<label class="vlab">Calorías que crees que ha perdido <span>(opcional)</span></label>' +
+    '<div class="vin"><input type="text" inputmode="decimal" data-vlost value="' + esc(val) + '" placeholder="Sin estimar"><span>kcal</span></div>' +
+    '<div class="presets">' + (hourK ? btn('Toda la hora anterior · ' + Math.round(hourK), Math.round(hourK)) + btn('La mitad · ' + Math.round(hourK / 2), Math.round(hourK / 2)) : '') +
+      btn('Nada', 0) + btn('Sin estimar', '') + '</div>' +
+    '<p class="tiny muted" style="margin:6px 0 0">Si lo pones, se resta del día y del límite. Si lo dejas vacío, lo de la hora anterior queda «en duda» sin restar nada.</p></div>';
+  var inp = box.querySelector('[data-vlost]');
+  function set(v){
+    if (v === '' || v == null){ d.kcalLost = null; inp.value = ''; }
+    else { d.kcalLost = Math.min(2000, Math.max(0, Math.round(v * 10) / 10)); inp.value = fmtNum(d.kcalLost); }
+    if (root.id === 'view-log') paintKMeter();
+  }
+  inp.addEventListener('input', function(){
+    var raw = inp.value.trim();
+    if (!raw){ d.kcalLost = null; }
+    else { var n = parseNum(raw); if (isFinite(n) && n >= 0) d.kcalLost = Math.min(2000, Math.round(n * 10) / 10); }
+    if (root.id === 'view-log') paintKMeter();
+  });
+  box.querySelectorAll('[data-vset]').forEach(function(b){ b.onclick = function(){ set(b.dataset.vset === '' ? '' : +b.dataset.vset); }; });
+}
 function paintKMeter(){
   var box = $('#view-log [data-kmeter]');
   if (!box) return;
   var d = curDraft(), key = dayKey(d.ts);
   var prev = (daysOf('dieta').get(key) || []);
-  var before = agg(prev).kcal;
-  var add = agg([{ tags:d.tags, ts:d.ts.toISOString() }]).kcal;
+  var before = netKcal(agg(prev));
+  var add = agg([{ tags:d.tags, ts:d.ts.toISOString() }]).kcal - (draftIsVomit(d) && d.kcalLost > 0 ? d.kcalLost : 0);
   var L = kcalLimit(), total = before + add;
   if (!L && !before && !add){ box.innerHTML = ''; return; }
   var when = key === dayKey(new Date()) ? 'Hoy' : 'Ese día';
@@ -2409,6 +2585,7 @@ function mkEntry(d, id){
     place: d.tracker === 'arenero' ? (d.place || null) : null,
     note: (d.note || '').trim(),
     photo: d.photo || null, driveId: d.driveId || null, thumbDriveId: d.thumbDriveId || null,
+    kcalLost: (draftIsVomit(d) && typeof d.kcalLost === 'number') ? d.kcalLost : null,
     photoPurged: !hasPhoto && !!d.photoPurged,
     video: d.video || null, videoDriveId: d.videoDriveId || null, videoPosterDriveId: d.videoPosterDriveId || null,
     videoPurged: !hasVideo && !!d.videoPurged,
@@ -2451,10 +2628,34 @@ function entryHTML(e){
   var sub = [];
   if ((e.tracker || 'arenero') === 'arenero'){ var pl = e.place ? placeById(e.place) : null; sub.push(pl ? pl.label : 'Sin ubicación'); }
   if (isRange(e)) sub.push((isDurEntry(e) ? 'duró ' : 'franja de ') + fmtDur(entryEnd(e) - entryStart(e)));
+  var cls = 'entry', bstyle = '';
+  if ((e.tracker || 'arenero') === 'dieta'){
+    var VL = vomitLinks();
+    if (VL.byVomit[e.id] || isVomit(e)){
+      var ms = VL.byVomit[e.id] || [];
+      sub.push(ms.length ? 'tras ' + ms.map(mealDesc).join(', ') : 'sin comida registrada en la hora anterior');
+      if (hasEstimate(e)) sub.push('pérdida estimada: ' + (e.kcalLost > 0 ? '−' + fmtKcal(e.kcalLost) : 'nada'));
+      else if (ms.length) sub.push('sin estimar');
+      var mm = medLinks().byVomitMed[e.id];
+      if (mm) sub.push('medicación dudosa: ' + mm.map(medDesc).join(', '));
+      cls += ' vom'; bstyle = ' style="border-left-color:' + kcolor('vomito') + '"';
+    }
+    if (VL.byMeal[e.id]){
+      var v0 = VL.byMeal[e.id][0], mins = Math.round((entryStart(v0) - entryEnd(e)) / 60000);
+      var open = !!VL.byMealOpen[e.id];
+      sub.push((v0.id === e.id ? 'vómito en el mismo registro' : (mins <= 0 ? 'vómito en la misma franja' : 'vómito ' + mins + ' min después')) +
+               (open ? ': puede no haberlo retenido' : ' (pérdida estimada en el vómito)'));
+      if (open && cls.indexOf('vom') === -1){ cls += ' risk'; bstyle = ' style="border-left-color:' + kcolor('vomito') + '"'; }
+    }
+  }
+  if ((e.tracker || 'arenero') === 'medicacion' && medLinks().byMed[e.id]){
+    sub.push(afterText(e, medLinks().byMed[e.id][0]) + ': puede no haberla absorbido');
+    cls += ' risk'; bstyle = ' style="border-left-color:' + kcolor('vomito') + '"';
+  }
   var media = '';
   var pk = thumbKey(e); if (pk) media += '<img class="thumb" data-ph="'+esc(pk)+'" alt="">';
   var vk = posterKey(e); if (vk) media += '<span class="vthumb"><img class="thumb" data-ph="'+esc(vk)+'" alt=""></span>';
-  return '<button class="entry" data-id="'+esc(e.id)+'"><span class="t">'+esc(timeLabel(e))+'</span>' +
+  return '<button class="'+cls+'"'+bstyle+' data-id="'+esc(e.id)+'"><span class="t">'+esc(timeLabel(e))+'</span>' +
     '<span class="body"><span class="tagline">'+tags+'</span>' +
     (sub.length ? '<span class="sub">'+esc(sub.join(' · '))+'</span>' : '') +
     (e.note ? '<span class="note">'+esc(e.note)+'</span>' : '') + '</span>' + media + '</button>';
@@ -2509,20 +2710,23 @@ function openEntrySheet(id){
     photo:e.photo || null, driveId:e.driveId || null, thumbDriveId:e.thumbDriveId || null, photoPurged:!!e.photoPurged,
     preview:null, uploading:null, pending:null,
     video:e.video || null, videoDriveId:e.videoDriveId || null, videoPosterDriveId:e.videoPosterDriveId || null, videoPurged:!!e.videoPurged,
-    vbusy:null,
+    vbusy:null, kcalLost: typeof e.kcalLost === 'number' ? e.kcalLost : null,
     _old:{ photo:e.photo || null, driveId:e.driveId || null, thumbDriveId:e.thumbDriveId || null,
            video:e.video || null, videoDriveId:e.videoDriveId || null, videoPosterDriveId:e.videoPosterDriveId || null }
   };
   var d = sheetDraft;
   var h = '<h2>Editar · '+esc(trackerById(tr).label)+'</h2><div data-time></div>' +
-    '<div class="sect">'+chipsHTML(tr)+'</div>' +
+    '<div class="sect">'+chipsHTML(tr)+(tr === 'dieta' ? '<div data-vpanel></div>' : '')+'</div>' +
     (tr === 'arenero' && activePlaces().length ? placesHTML() : '') +
     '<div class="sect"><h2>Nota</h2><textarea class="note" data-note style="margin-top:0">'+esc(d.note)+'</textarea>' +
     '<div style="margin-top:9px">'+extrasHTML(false)+'</div><div data-media></div></div>' +
     '<div class="sheet-actions"><button class="secondary" id="sDel" style="color:var(--warn)">Eliminar</button><button class="primary" id="sSave">Guardar cambios</button></div>';
   openSheet(h, function(sh){
     paintTime(sh, d);
-    bindChips(sh, d, function(){});
+    bindChips(sh, d, function(){ paintVPanel(sh, d); });
+    paintVPanel(sh, d);
+    sh.addEventListener('change', function(ev){ if (ev.target && ev.target.matches && ev.target.matches('[data-dt]')) paintVPanel(sh, d); });
+    sh.addEventListener('click', function(ev){ if (ev.target && ev.target.closest && ev.target.closest('[data-nudge],[data-preset],[data-mode]')) setTimeout(function(){ paintVPanel(sh, d); }, 0); });
     paintChips(sh, d);
     bindPlaces(sh, d); paintPlaces(sh, d);
     bindExtras(sh, d, false);
@@ -2747,6 +2951,26 @@ function obsFor(tr){
       }
       if (now - lw.t > 31*86400000) out.push({ t:'Hace más de un mes que no lo pesas.' });
     }
+    var VL7 = vomitLinks(), vlist = list.filter(isVomit);
+    if (vlist.length){
+      var lv = latest(vlist), lm = VL7.byVomit[lv.id] || [];
+      var vt = 'Último vómito ' + agoOf(lv) + '.';
+      if (hasEstimate(lv)){
+        vt += lm.length ? ' En la hora anterior había comido ' + lm.map(mealDesc).join(', ') + '.' : '';
+        vt += ' Estimaste que perdió ' + (lv.kcalLost > 0 ? fmtKcal(lv.kcalLost) : 'nada') + ', y ya está descontado.';
+      } else if (lm.length){
+        var lk = agg(lm).kcal;
+        vt += ' En la hora anterior había comido ' + lm.map(mealDesc).join(', ') + (lk ? ': ' + fmtKcal(lk) + ' que puede no haber retenido' : '') + '.';
+      } else vt += ' No había comida registrada en la hora anterior.';
+      out.push({ t:vt });
+      var since24 = now - 24*3600000, n24 = 0;
+      vlist.forEach(function(v){ if (entryEnd(v) >= since24) n24 += (agg([v]).kinds.vomito || 1); });
+      if (n24 >= 2) out.push({ t:'Ha vomitado ' + n24 + ' veces en las últimas 24 h. Varios vómitos seguidos conviene comentarlos con el veterinario.', warn:true });
+      var v30k = {}; rangeKeys(30).forEach(function(k){ v30k[k] = 1; });
+      var l30 = list.filter(function(e){ return v30k[e.fecha]; }), a30 = agg(l30);
+      if (a30.kinds.vomito) out.push({ t:'En los últimos 30 días: ' + plural(a30.kinds.vomito, 'vómito', 'vómitos') +
+        (a30.kcalLost ? '; ' + fmtKcal(a30.kcalLost) + ' estimadas perdidas' : '') + (a30.kcalRisk ? '; ' + fmtKcal(a30.kcalRisk) + ' de comidas previas en duda, sin estimar.' : '.') });
+    }
     var at = agg(dm.get(today) || []);
     var foodDays = rangeKeys(15).slice(0, 14).filter(function(k){ return agg(dm.get(k) || []).kindEv.comida; });
     var tds = dayStatus(dm.get(today) || []);
@@ -2759,9 +2983,9 @@ function obsFor(tr){
       if (wk.n) out.push({ t:'Esta semana: ' + complianceLine(wk) + '.' });
     }
     if (!tds && (at.kcal > 0 || foodDays.length >= 3)){
-      var kt = 'Hoy lleva ' + fmtKcal(at.kcal);
+      var kt = 'Hoy lleva ' + fmtKcal(netKcal(at));
       if (foodDays.length >= 3){
-        var ks = 0; foodDays.forEach(function(k){ ks += agg(dm.get(k)).kcal; });
+        var ks = 0; foodDays.forEach(function(k){ ks += netKcal(agg(dm.get(k))); });
         kt += '; la media de los días de las dos últimas semanas en que registraste comida es ' + fmtKcal(ks / foodDays.length);
       }
       out.push({ t: kt + '.' });
@@ -2782,11 +3006,18 @@ function obsFor(tr){
     }
   }
   if (tr === 'medicacion'){
+    var MLx = medLinks();
+    doubtfulRecent().forEach(function(m){
+      out.push({ t:'Toma dudosa: ' + medDesc(m) + ', ' + afterText(m, MLx.byMed[m.id][0]) + '. Puede no haberla absorbido; consulta a tu veterinario si hay que repetirla.', warn:true });
+    });
     tagsOf('medicacion').forEach(function(t){
       var best = null;
       list.forEach(function(e){ if (e.tags && e.tags[t.id] && (!best || entryEnd(e) > entryEnd(best))) best = e; });
-      if (best) out.push({ t: t.label + ': última toma ' + agoOf(best) + '.' });
+      if (best) out.push({ t: t.label + ': última toma ' + agoOf(best) + (MLx.byMed[best.id] ? ' (dudosa por un vómito)' : '') + '.' });
     });
+    var m30 = {}; rangeKeys(30).forEach(function(k){ m30[k] = 1; });
+    var nd30 = list.filter(function(e){ return m30[e.fecha] && MLx.byMed[e.id]; }).length;
+    if (nd30) out.push({ t:'En los últimos 30 días: ' + plural(nd30, 'toma dudosa', 'tomas dudosas') + ' por un vómito en las 2 horas siguientes.' });
   }
   if (tr !== 'medicacion' && tr !== 'dieta'){
     var fk = list[0].fecha, prev = rangeKeys(15).slice(0, 14).filter(function(k){ return k >= fk; });
@@ -2822,6 +3053,15 @@ function dailyRows(tr, keys){
     return keys.map(function(k){ var a = agg(dm.get(k) || []); return { k:k, segs:[{ v:a.units.g || 0, kind:'comida' }] }; });
   }
   var kinds = trackerById(tr).kinds;
+  if (tr === 'medicacion'){
+    var BM = medLinks().byMed;
+    return keys.map(function(k){
+      var list = dm.get(k) || [];
+      var fa = agg(list.filter(function(e){ return !BM[e.id]; })), da = agg(list.filter(function(e){ return BM[e.id]; }));
+      return { k:k, vomit: da.n > 0, segs: kinds.map(function(kd){ return { v:fa.kinds[kd] || 0, kind:kd }; })
+        .concat(kinds.map(function(kd){ return { v:da.kinds[kd] || 0, kind:kd, pale:true }; })) };
+    });
+  }
   return keys.map(function(k){
     var a = agg(dm.get(k) || []);
     return { k:k, segs: kinds.map(function(kd){ return { v:a.kinds[kd] || 0, kind:kd }; }) };
@@ -2832,10 +3072,16 @@ function foodsWithKcal(ev){
   return tagsOf('dieta').filter(function(t){ return t.kind === 'comida' && a.kcalBy[t.id] > 0; });
 }
 function kcalRows(keys, foods){
-  var dm = daysOf('dieta');
+  var dm = daysOf('dieta'), VO = vomitLinks().byMealOpen;
   return keys.map(function(k){
-    var a = agg(dm.get(k) || []), st = dayStatus(dm.get(k) || []);
-    return { k:k, over: !!(st && st.st === 'over'), segs: foods.map(function(t){ return { v:Math.round((a.kcalBy[t.id] || 0) * 10) / 10, pal:foodPal(t.id) }; }) };
+    var list = dm.get(k) || [], st = dayStatus(list);
+    var okA = agg(list.filter(function(e){ return !VO[e.id]; })), rkA = agg(list.filter(function(e){ return VO[e.id]; }));
+    var lost = Math.min(okA.kcalLost + rkA.kcalLost, okA.kcal);   // lo estimado se descuenta de lo ya resuelto
+    var keep = okA.kcal > 0 ? 1 - lost / okA.kcal : 1;
+    var segs = foods.map(function(t){ return { v:Math.round((okA.kcalBy[t.id] || 0) * keep * 10) / 10, pal:foodPal(t.id) }; })
+      .concat(foods.map(function(t){ return { v:Math.round((rkA.kcalBy[t.id] || 0) * 10) / 10, pal:foodPal(t.id), pale:true }; }))
+      .concat([{ v:Math.round(lost * 10) / 10, kind:'vomito', pale:true }]);
+    return { k:k, over: !!(st && st.st === 'over'), vomit: list.some(isVomit), segs:segs };
   });
 }
 function missingKcalNames(ev){
@@ -2881,7 +3127,11 @@ function weekdayRows(tr, keys){
 }
 function medRows(keys){
   var dm = daysOf('medicacion');
-  return keys.map(function(k){ var a = agg(dm.get(k) || []); return { med:a.kinds.medicamento || 0, sup:a.kinds.suplemento || 0 }; });
+  var BM = medLinks().byMed;
+  return keys.map(function(k){
+    var list = dm.get(k) || [], a = agg(list), f = agg(list.filter(function(e){ return !BM[e.id]; }));
+    return { med:a.kinds.medicamento || 0, sup:a.kinds.suplemento || 0, medOk:f.kinds.medicamento || 0, supOk:f.kinds.suplemento || 0 };
+  });
 }
 function tagRows(tr, ev){
   var a = agg(ev), groups = {};
@@ -2925,6 +3175,13 @@ function barsSVG(rows, tr, o){
       s += '<circle cx="'+(i*(bw+gap)+bw/2).toFixed(2)+'" cy="'+Math.max(3, H - tot / max * (H - 8) - 4).toFixed(2)+'" r="'+Math.max(1.4, Math.min(2.6, bw/2)).toFixed(2)+'" fill="var(--warn)"/>';
     });
   }
+  rows.forEach(function(r, i){
+    if (!r.vomit) return;
+    var tot = 0; r.segs.forEach(function(g2){ tot += g2.v; });
+    var cx = i*(bw+gap)+bw/2, top = H - tot / max * (H - 8) - (r.over && o.limit ? 10 : 4), hw = Math.max(1.8, Math.min(3, bw/2));
+    top = Math.max(4, top);
+    s += '<path d="M'+(cx-hw).toFixed(2)+' '+(top-hw).toFixed(2)+'L'+(cx+hw).toFixed(2)+' '+(top-hw).toFixed(2)+'L'+cx.toFixed(2)+' '+(top+hw*0.6).toFixed(2)+'Z" fill="'+kcolor('vomito')+'"/>';
+  });
   var step = o.every || Math.max(1, Math.ceil(n / 6));
   rows.forEach(function(r, i){
     if (i % step !== 0 && !(i === n - 1 && (n - 1) % step >= step / 2)) return;
@@ -2942,8 +3199,10 @@ function medStripSVG(keys){
   var s = '<svg viewBox="0 0 '+W+' 20" aria-label="Tomas de medicación">';
   rows.forEach(function(r, i){
     var cx = (i*(bw+gap) + bw/2).toFixed(2);
-    if (r.med) s += '<circle cx="'+cx+'" cy="5" r="'+r0.toFixed(2)+'" fill="'+kcolor('medicamento')+'"/>';
-    if (r.sup) s += '<circle cx="'+cx+'" cy="15" r="'+r0.toFixed(2)+'" fill="'+kcolor('suplemento')+'"/>';
+    var dot = function(cy, col, firm){ return firm ? '<circle cx="'+cx+'" cy="'+cy+'" r="'+r0.toFixed(2)+'" fill="'+col+'"/>'
+      : '<circle cx="'+cx+'" cy="'+cy+'" r="'+(r0 * 0.8).toFixed(2)+'" fill="none" stroke="'+col+'" stroke-width="1.2"/>'; };
+    if (r.med) s += dot(5, kcolor('medicamento'), r.medOk > 0);
+    if (r.sup) s += dot(15, kcolor('suplemento'), r.supOk > 0);
   });
   return s + '</svg><div class="legend"><span><i style="background:'+kcolor('medicamento')+'"></i>Día con medicamento</span><span><i style="background:'+kcolor('suplemento')+'"></i>Día con suplemento</span></div>';
 }
@@ -2982,7 +3241,8 @@ function kpisFor(tr, ev, span){
       var cc = compliance(Object.keys(fdays));
       if (cc.n) out.push({ v:cc.ok + '/' + cc.n, k:'días dentro del límite (' + kcalLimit() + ' kcal)', c: cc.over ? 'var(--warn)' : kcolor('comida') });
     }
-    if (a.kcal > 0) out.push({ v:String(Math.round(a.kcal / nf)), k:'kcal por día registrado' + (Object.keys(a.kcalMissing).length ? ' (incompleto)' : ''), c:kcolor('comida') });
+    if (a.kinds.vomito) out.push({ v:String(a.kinds.vomito), k:(a.kinds.vomito === 1 ? 'vómito' : 'vómitos') + (a.kcalLost ? ' · −' + fmtKcal(a.kcalLost) + ' estimadas' : '') + (a.kcalRisk ? ' · ' + fmtKcal(a.kcalRisk) + ' en duda' : ''), c:kcolor('vomito') });
+    if (a.kcal > 0) out.push({ v:String(Math.round(netKcal(a) / nf)), k:'kcal por día registrado' + (Object.keys(a.kcalMissing).length ? ' (incompleto)' : ''), c:kcolor('comida') });
     Object.keys(a.units).forEach(function(u){ out.push({ v:pf(a.units[u]), k:u + ' por día registrado', c:kcolor('comida') }); });
     out.push({ v:pf(a.kindEv.comida || 0), k:'comidas por día registrado' });
     if (a.durMs) out.push({ v:fmtDur(a.durMs / span), k:'comedero vacío al día', c:kcolor('duracion') });
@@ -2995,6 +3255,8 @@ function kpisFor(tr, ev, span){
     out.push({ v:a.n, k:'tomas' }, { v:pd(a.n), k:'tomas al día' },
              { v:Object.keys(days).length + '/' + span, k:'días con alguna toma' });
     if (a.kinds.medicamento) out.push({ v:a.kinds.medicamento, k:'dosis de medicamento', c:kcolor('medicamento') });
+    var ndk = ev.filter(function(e){ return medLinks().byMed[e.id]; }).length;
+    if (ndk) out.push({ v:ndk, k:(ndk === 1 ? 'toma dudosa' : 'tomas dudosas') + ' (vómito en las 2 h siguientes)', c:kcolor('vomito') });
   }
   if (out.length % 2 === 1) out[out.length - 1].wide = true;
   return out;
@@ -3070,7 +3332,7 @@ function renderStats(){
     var wsvg = weightSVG(weightsOf(), barKeys);
     var kf = foodsWithKcal(ev);
     if (kf.length){
-      h += box('Calorías al día', 'Cada color es una comida: gramos × sus kcal.' + (missingKcalNames(ev).length ? ' Faltan comidas sin kcal apuntadas.' : ''),
+      h += box('Calorías al día', 'Cada color es una comida: gramos × sus kcal.' + (agg(ev).kinds.vomito ? ' En tono claro, lo comido en la hora anterior a un vómito sin estimar; en color de vómito, encima, las kcal que estimaste perdidas; el triángulo marca los días con vómitos.' : '') + (missingKcalNames(ev).length ? ' Faltan comidas sin kcal apuntadas.' : ''),
         barsSVG(kcalRows(barKeys, kf), tr, { dates:true, unit:'kcal', label:'Calorías al día', limit:kcalLimit() }) +
         '<div class="legend">' + kf.map(function(t){ return '<span><i style="background:'+(isDark() ? foodPal(t.id)[1] : foodPal(t.id)[0])+'"></i>'+esc(t.label)+'</span>'; }).join('') + '</div>');
       if (kcalLimit()){
@@ -3100,7 +3362,8 @@ function renderStats(){
     var daily = barsSVG(dailyRows(tr, barKeys), tr, { dates:true, label:'Por día' });
     var strip = (tr === 'asma' || tr === 'arenero') ? medStripSVG(barKeys) : '';
     h += box(tr === 'asma' ? 'Episodios por día' : (tr === 'arenero' ? 'Visitas por día' : 'Tomas por día'),
-             tr === 'asma' && strip ? 'Debajo, los días con medicación: así ves si coincide con menos tos.' : null,
+             tr === 'asma' && strip ? 'Debajo, los días con medicación: así ves si coincide con menos tos. Un círculo hueco es un día en que todas las tomas fueron dudosas por un vómito.' :
+             (tr === 'medicacion' && ev.some(function(e){ return medLinks().byMed[e.id]; }) ? 'En tono claro, las tomas seguidas de un vómito en las 2 horas siguientes; el triángulo marca esos días.' : null),
              daily + legendHTML(kinds) + (strip ? '<div style="margin-top:10px">'+strip+'</div>' : ''));
   }
   var hs = hourSpread(ev);
@@ -3427,6 +3690,12 @@ function paintPdf(JsPDF, o, R, set, trs, shots, imgs){
       });
       doc.setFontSize(6.5); tc(doc, PC.soft);
     }
+    rows.forEach(function(r, i){
+      if (!r.vomit) return;
+      var tot = 0; r.segs.forEach(function(g2){ tot += g2.v; });
+      var cx = M + i*(bw+gap) + bw/2, top = y + H - tot / max * H - (r.over && opt.limit ? 4 : 1.6), hw = Math.max(0.6, Math.min(1.2, bw/2));
+      fc(doc, hexRgb(kindOf('vomito').c[0])); doc.triangle(cx - hw, top - hw, cx + hw, top - hw, cx, top + hw * 0.6, 'F');
+    });
     var step = opt.every || Math.max(1, Math.ceil(n / 9));
     rows.forEach(function(r, i){
       if (i % step !== 0 && !(i === n - 1 && (n - 1) % step >= step / 2)) return;
@@ -3441,10 +3710,11 @@ function paintPdf(JsPDF, o, R, set, trs, shots, imgs){
     var n = rows.length, gap = n > 40 ? 0.3 : (n > 20 ? 0.7 : (n > 10 ? 1.4 : 3)), bw = (CW - gap*(n-1)) / n, r0 = Math.max(0.5, Math.min(1.3, bw/2));
     rows.forEach(function(r, i){
       var cx = M + i*(bw+gap) + bw/2;
-      if (r.med){ fc(doc, hexRgb(kindOf('medicamento').c[0])); doc.circle(cx, y + 1.5, r0, 'F'); }
-      if (r.sup){ fc(doc, hexRgb(kindOf('suplemento').c[0])); doc.circle(cx, y + 4.8, r0, 'F'); }
+      var pdot = function(cyy, hex, firm){ if (firm){ fc(doc, hexRgb(hex)); doc.circle(cx, cyy, r0, 'F'); } else { dc(doc, hexRgb(hex)); doc.setLineWidth(0.25); doc.circle(cx, cyy, r0 * 0.8, 'S'); } };
+      if (r.med) pdot(y + 1.5, kindOf('medicamento').c[0], r.medOk > 0);
+      if (r.sup) pdot(y + 4.8, kindOf('suplemento').c[0], r.supOk > 0);
     });
-    doc.setFontSize(6.5); tc(doc, PC.soft); doc.text('Arriba: días con medicamento. Abajo: días con suplemento.', M, y + 9.5);
+    doc.setFontSize(6.5); tc(doc, PC.soft); doc.text('Arriba: días con medicamento. Abajo: días con suplemento. Hueco: todas las tomas de ese día dudosas por un vómito.', M, y + 9.5);
     y += 13;
   }
   function hbarList(rows){
@@ -3540,6 +3810,7 @@ function paintPdf(JsPDF, o, R, set, trs, shots, imgs){
             lx += 3.6 + doc.getTextWidth(t.label) + 6;
           });
           y += 6;
+          if (agg(ev).kinds.vomito) text('En tono claro: lo comido en la hora anterior a un vómito sin estimar. Arriba, en color de vómito: kcal estimadas perdidas. Triángulo: días con vómitos.', 7.5, PC.mid);
           if (kcalLimit()){
             h2('Límite diario: ' + kcalLimit() + ' kcal', 'solo días con comida registrada');
             var perK = {}; R.keys.forEach(function(k){ perK[k] = 1; });
@@ -3601,6 +3872,9 @@ function paintPdf(JsPDF, o, R, set, trs, shots, imgs){
         });
         var tl = timeLabel(e).replace('⁺¹', ' (+1)');
         if (isRange(e) && isDurEntry(e)) tl += ' (' + fmtDur(entryEnd(e) - entryStart(e)) + ')';
+        if ((e.tracker || 'arenero') === 'dieta' && vomitLinks().byMeal[e.id] && !isVomit(e)) labels.push(vomitLinks().byMealOpen[e.id] ? '(vómito después)' : '(vómito después, estimado)');
+        if ((e.tracker || 'arenero') === 'medicacion' && medLinks().byMed[e.id]) labels.push('(dudosa: vómito después)');
+        if (isVomit(e) && hasEstimate(e)) labels.push('(' + (e.kcalLost > 0 ? '-' + fmtKcal(e.kcalLost) : '0 kcal') + ' estimadas)');
         var cells = [shortDate(e.fecha), tl, labels.join(', ')];
         if (hasPlace){ var p = e.place ? placeById(e.place) : null; cells.push(p ? p.label : '—'); }
         if (o.notes) cells.push((e.note || '') + (e.video || e.videoDriveId ? ' [vídeo]' : '') + (e.photo || e.driveId ? ' [foto]' : ''));
@@ -3702,7 +3976,7 @@ $('#vidCamInput').addEventListener('change', onPick($('#vidCamInput')));
 function bootApp(){
   return loadMeta().then(function(){ return idbGet('kv','config'); }).then(function(cfg){
     var c = cfg ? migrateConfig(cfg) : Object.assign(normConfig({ tags:defaultTags(), places:defaultPlaces() }), { _changed:true });
-    var changed = c._changed; S._conv = c._convert || null; delete c._changed; delete c._convert; c.v = 6;
+    var changed = c._changed; S._conv = c._convert || null; delete c._changed; delete c._convert; c.v = 7;
     return idbPut('kv', c, 'config').then(function(){ applyConfig(c); return changed && cfg ? enqueue({ t:'config', id:'config' }) : null; });
   }).then(function(){ return idbAll('entries'); }).then(function(list){
     var norm = list.map(normEntry), fix = [], conv = S._conv, convIds = [];

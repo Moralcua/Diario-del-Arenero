@@ -1,7 +1,7 @@
 /* Diario del gato — service worker
    Cachea la app para que abra y funcione sin conexión. */
 
-var CACHE = 'gato-v7';
+var CACHE = 'gato-v10';
 var CDN   = 'gato-cdn-v1';
 var SHELL = ['./', './index.html', './manifest.webmanifest', './icon-192.png', './icon-512.png'];
 
