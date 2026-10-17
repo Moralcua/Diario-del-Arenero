@@ -447,6 +447,29 @@ nav.tabs button{font-size:.68rem}
 .vin{display:flex;align-items:center;gap:8px;margin-bottom:8px}
 .vin input{width:120px;padding:10px;border-radius:10px;border:1px solid var(--line);background:var(--surface);font-size:1rem;font-weight:700;text-align:center}
 .vin span{color:var(--ink-2);font-weight:600}
+
+/* días completos y días fuera de los resúmenes */
+.pnote{margin:-6px 2px 12px;font-size:.8rem;color:var(--ink-3)}
+.lnkbtn{color:var(--brand);font-weight:600;text-decoration:underline;text-underline-offset:2px;font-size:inherit}
+.xpill{display:block;width:100%;text-align:left;margin:-3px 0 9px;padding:7px 11px;border-radius:10px;border:1px dashed var(--line);background:var(--surface-2);font-size:.8rem;color:var(--ink-2)}
+.xrow{display:flex;align-items:center;gap:8px;padding:9px 10px;border-radius:11px;background:var(--surface);border:1px solid var(--line);margin-bottom:6px;font-size:.86rem}
+.xrow .xb{flex:1;min-width:0;text-align:left}
+.xrow .xb span{display:block;font-size:.78rem;color:var(--ink-3)}
+.xrow .del{width:38px;height:38px;flex:none;border-radius:9px;display:grid;place-items:center;color:var(--warn);border:1px solid var(--line)}
+.xrow .del svg{width:16px;height:16px}
+.field input[type="date"]{font-variant-numeric:tabular-nums}
+
+/* entradas periódicas */
+.repeat{margin-top:4px}
+.repeat span span{display:block;font-size:.78rem;color:var(--ink-3)}
+.schedlist{margin:2px 2px 0;font-size:.8rem;color:var(--ink-3)}
+.srow{flex-wrap:wrap;align-items:flex-start}
+.srow .sb{flex:1;min-width:0;font-size:.88rem}
+.srow .sb b{display:flex;align-items:center;gap:7px}
+.srow .sb .tiny{display:flex;align-items:center;gap:8px;flex-wrap:wrap;margin-top:5px;color:var(--ink-3)}
+.srow input[type="time"]{padding:6px 8px;border-radius:8px;border:1px solid var(--line);background:var(--surface-2);font-variant-numeric:tabular-nums}
+.srow .son{padding:9px 10px;border-radius:9px;border:1px solid var(--line);font-size:.8rem;font-weight:600;flex:none}
+.srow.off .sb{opacity:.6}
 </style>
 </head>
 <body>
@@ -663,6 +686,16 @@ function rangeKeys(n){
   for (var i = n-1; i >= 0; i--){ var x = new Date(d); x.setDate(d.getDate()-i); out.push(dayKey(x)); }
   return out;
 }
+/** Los n días completos anteriores a hoy (hoy todavía no ha terminado). */
+function pastKeys(n){ return n > 0 ? rangeKeys(n + 1).slice(0, n) : []; }
+/* ---- días que la persona deja fuera de los resúmenes (app.excluded) ---- */
+function exclOf(key){ var x = S.app && S.app.excluded; return (x && x[key]) || null; }
+function isExcluded(tr, key){ var x = exclOf(key); return !!(x && (!Array.isArray(x.tr) || x.tr.indexOf(tr) !== -1)); }
+/** Los días que cuentan en medias y gráficos: sin hoy y sin los que se dejaron fuera. */
+function statKeys(tr, keys){
+  var today = dayKey(new Date());
+  return keys.filter(function(k){ return k !== today && !isExcluded(tr, k); });
+}
 function daysBetween(k1, k2){
   var a = k1.split('-'), b = k2.split('-');
   return Math.round((new Date(+b[0], +b[1]-1, +b[2]) - new Date(+a[0], +a[1]-1, +a[2])) / 86400000);
@@ -755,7 +788,7 @@ function compliance(keys){
     n++; sum += s.kcal;
     if (s.st === 'ok') ok++; else if (s.st === 'over') over++; else unk++;
   });
-  return { ok:ok, over:over, unk:unk, n:n, avg: n ? sum / n : 0 };
+  return { ok:ok, over:over, unk:unk, n:n, avg: n ? sum / n : 0, days:keys.length };
 }
 function keysBetween(a, b){
   var out = [], d = new Date(a); d.setHours(0,0,0,0);
@@ -765,24 +798,26 @@ function keysBetween(a, b){
   while (d <= end){ out.push(dayKey(d)); d.setDate(d.getDate() + 1); }
   return out;
 }
-/** Hoy, semana (lunes a domingo) y mes, actuales y anteriores. */
+/** Hoy, semana (lunes a domingo) y mes, actuales y anteriores. Salvo «Hoy», solo días completos y que cuentan. */
 function compliancePeriods(){
   var now = new Date(), dow = (now.getDay() + 6) % 7;
+  var yest = new Date(now); yest.setDate(now.getDate() - 1);
   var mon = new Date(now); mon.setDate(now.getDate() - dow);
   var prevMon = new Date(mon); prevMon.setDate(mon.getDate() - 7);
   var prevSun = new Date(mon); prevSun.setDate(mon.getDate() - 1);
   var m1 = new Date(now.getFullYear(), now.getMonth(), 1);
   var pm1 = new Date(now.getFullYear(), now.getMonth() - 1, 1), pmEnd = new Date(now.getFullYear(), now.getMonth(), 0);
+  var sk = function(a, b){ return statKeys('dieta', keysBetween(a, b)); };
   return [
     { label:'Hoy', keys:[dayKey(now)] },
-    { label:'Esta semana', keys:keysBetween(mon, now) },
-    { label:'Semana pasada', keys:keysBetween(prevMon, prevSun) },
-    { label:cap(MONL[now.getMonth()]), keys:keysBetween(m1, now) },
-    { label:cap(MONL[pm1.getMonth()]), keys:keysBetween(pm1, pmEnd) }
+    { label:'Esta semana', keys:sk(mon, yest) },
+    { label:'Semana pasada', keys:sk(prevMon, prevSun) },
+    { label:cap(MONL[now.getMonth()]), keys:sk(m1, yest) },
+    { label:cap(MONL[pm1.getMonth()]), keys:sk(pm1, pmEnd) }
   ].map(function(p){ p.c = compliance(p.keys); return p; });
 }
 function complianceLine(c){
-  if (!c.n) return 'sin comida registrada';
+  if (!c.n) return c.days ? 'sin comida registrada' : 'todavía sin días completos';
   var t = c.ok + ' de ' + c.n + (c.n === 1 ? ' día' : ' días') + ' dentro';
   if (c.over) t += ' · ' + c.over + ' por encima';
   if (c.unk) t += ' · ' + c.unk + ' sin datos completos';
@@ -918,7 +953,7 @@ var S = {
   mode:'pending', tab:'hoy',
   tracker: lsGet('tracker', 'arenero'),
   setTracker: lsGet('setTracker', 'arenero'),
-  tags:[], places:[], app:{ catName:'', retentionMonths:0, videoRetentionMonths:0, kcalLimit:0 },
+  tags:[], places:[], app:{ catName:'', retentionMonths:0, videoRetentionMonths:0, kcalLimit:0, excluded:{}, schedules:[] },
   entries:[], days:new Map(),
   loadedConfig:false, loadedDays:false,
   period:30, filter:{}, histLimit:45,
@@ -938,7 +973,7 @@ function blankDraft(tr){
     tracker:tr, mode:'point', ts:new Date(), tsEnd:null, tags:{},
     place: tr === 'arenero' ? lsGet('lastPlace', null) : null, note:'',
     photo:null, driveId:null, thumbDriveId:null, preview:null, uploading:null, pending:null,
-    video:null, videoDriveId:null, videoPosterDriveId:null, vbusy:null, kcalLost:null
+    video:null, videoDriveId:null, videoPosterDriveId:null, vbusy:null, kcalLost:null, repeat:false
   };
 }
 function curDraft(){
@@ -1070,12 +1105,12 @@ function enqueue(op){
     return Promise.all(dead.map(function(o){ return idbDel('outbox', o.seq); }));
   }).then(function(){
     return idbPut('outbox', { t:op.t, id:op.id || '', photos:op.photos || [] });
-  }).then(refreshPending).then(function(){ scheduleSync(700); });
+  }).then(refreshPending).then(function(){ if (syncing) S.newOps = true; scheduleSync(700); });
 }
 function enqueueBulk(ops){
   var i = 0;
   function step(){ return i >= ops.length ? Promise.resolve() : idbPut('outbox', ops[i++]).then(step); }
-  return step().then(refreshPending).then(function(){ scheduleSync(1200); });
+  return step().then(refreshPending).then(function(){ if (syncing) S.newOps = true; scheduleSync(1200); });
 }
 
 function srvEntry(e){
@@ -1228,12 +1263,17 @@ function drain(){
 
 function pull(){
   return api('bootstrap').then(function(r){
+    return idbAll('outbox').then(function(ops){ S.cfgPending = ops.some(function(o){ return o.t === 'config'; }); return r; });
+  }).then(function(r){
     S.sheetUrl = r.sheetUrl || ''; S.folderUrl = r.folderUrl || ''; S.videoFolderUrl = r.videoFolderUrl || '';
     // Se guarda también en el móvil para poder enseñarlo sin conexión.
     if (r.account) META.account = r.account;
     META.sheetUrl = S.sheetUrl; META.folderUrl = S.folderUrl; META.videoFolderUrl = S.videoFolderUrl;
     var pre, conv = null, convIds = [];
-    if (r.config && Array.isArray(r.config.tags) && r.config.tags.length){
+    // Si hay un cambio de ajustes del móvil esperando a salir, manda el del móvil: no se pisa con el del servidor.
+    if (r.config && Array.isArray(r.config.tags) && r.config.tags.length && S.cfgPending){
+      pre = Promise.resolve();
+    } else if (r.config && Array.isArray(r.config.tags) && r.config.tags.length){
       var cfg = migrateConfig(r.config);
       var changed = cfg._changed; conv = cfg._convert || null; delete cfg._changed; delete cfg._convert;
       applyConfig(cfg);
@@ -1258,7 +1298,7 @@ function pull(){
         return saveMeta();
       });
     });
-  }).then(function(){ S.logSig = ''; render(); });
+  }).then(function(){ S.logSig = ''; render(); return runSchedules(); });
 }
 
 function scheduleSync(ms){
@@ -1271,13 +1311,14 @@ function syncNow(withPull){
   if (typeof navigator !== 'undefined' && navigator.onLine === false){ paintSync(); return Promise.resolve(); }
   if (syncing){ S.syncAgain = true; S.syncAgainPull = S.syncAgainPull || !!withPull; return Promise.resolve(); }
   syncing = true; S.syncState = 'sync'; paintSync();
+  S.newOps = false;
   var made = 0;
   return drain()
     .then(function(n){ made = n; return withPull ? pull() : null; })
     .then(function(){ syncing = false; S.syncState = 'idle'; S.progress = null; return refreshPending(); })
     .then(function(left){
       if (S.syncAgain){ var p = S.syncAgainPull; S.syncAgain = false; S.syncAgainPull = false; return syncNow(p); }
-      if (left > 0) scheduleSync(made > 0 ? 900 : 30000);
+      if (left > 0) scheduleSync(made > 0 || S.newOps ? 900 : 30000);
     })
     .catch(function(){
       syncing = false; S.syncState = 'idle'; S.progress = null;
@@ -1304,8 +1345,15 @@ function normConfig(c){
     v: c.v || 0,
     tags:   Array.isArray(c.tags)   ? c.tags.map(function(t){ return Object.assign({}, t); }) : defaultTags(),
     places: Array.isArray(c.places) ? c.places.slice() : defaultPlaces(),
-    app:    Object.assign({ catName:'', retentionMonths:0, videoRetentionMonths:0, kcalLimit:0 }, c.app || {})
+    app:    normApp(c.app)
   };
+}
+/** Preferencias de la app, con los días fuera de los resúmenes y las entradas periódicas siempre presentes. */
+function normApp(a){
+  var app = Object.assign({ catName:'', retentionMonths:0, videoRetentionMonths:0, kcalLimit:0 }, a || {});
+  app.excluded = (app.excluded && typeof app.excluded === 'object' && !Array.isArray(app.excluded)) ? Object.assign({}, app.excluded) : {};
+  app.schedules = Array.isArray(app.schedules) ? app.schedules.map(function(s){ return Object.assign({}, s, { tags:Object.assign({}, s.tags || {}) }); }) : [];
+  return app;
 }
 /** Configuraciones de versiones anteriores: todo era arenero; se añaden los seguimientos nuevos. */
 function migrateConfig(c){
@@ -1358,7 +1406,11 @@ function migrateConfig(c){
     }
     changed = true;
   }
-  cfg.v = 7;
+  if (ver < 8){
+    // v8: días fuera de los resúmenes y entradas periódicas (normApp ya los deja vacíos si no había)
+    changed = true;
+  }
+  cfg.v = 8;
   cfg._changed = changed;
   return cfg;
 }
@@ -1369,7 +1421,7 @@ function applyConfig(cfg){
 }
 function saveCfg(){
   S.lastCfgWrite = Date.now();
-  var cfg = { v:7, tags:S.tags, places:S.places, app:S.app };
+  var cfg = { v:8, tags:S.tags, places:S.places, app:S.app };
   return idbPut('kv', cfg, 'config').then(function(){ return enqueue({ t:'config', id:'config' }); });
 }
 function saveTags(){ return saveCfg(); }
@@ -2438,6 +2490,10 @@ function logHTML(){
   h += '<div class="sect">' + extrasHTML(true) +
     '<textarea class="note" data-note placeholder="'+esc(NOTE_PH[tr])+'"'+(d.note ? '' : ' hidden')+'>'+esc(d.note)+'</textarea>' +
     '<div data-media></div></div>';
+  if (tr === 'dieta' || tr === 'medicacion'){
+    h += '<div class="sect" style="margin-top:-6px"><label class="check repeat"><input type="checkbox" data-repeat' + (d.repeat ? ' checked' : '') + '>' +
+      '<span><b>Repetir cada día a esta hora</b><span>Entrada periódica: lo que marques se añadirá solo todos los días.</span></span></label>' + schedLine(tr) + '</div>';
+  }
   h += '<div class="saverow"><button class="save" id="saveBtn" disabled>'+esc(T.save)+'</button></div>';
   return h;
 }
@@ -2451,6 +2507,9 @@ function bindLog(){
   bindPlaces(v, d);
   bindExtras(v, d, true);
   paintMedia(d);
+  var rp = v.querySelector('[data-repeat]');
+  if (rp) rp.onchange = function(){ d.repeat = rp.checked; var pr = rp.checked ? schedProblem(d) : ''; if (pr) toast(pr); };
+  v.querySelectorAll('[data-sched]').forEach(function(b){ b.onclick = openSchedSheet; });
   if (!v._kmBound){
     v._kmBound = true;
     v.addEventListener('change', function(ev){ if (ev.target && ev.target.matches && ev.target.matches('[data-dt]')) paintKMeter(); paintVPanel($('#view-log'), curDraft()); });
@@ -2547,12 +2606,18 @@ function saveDraft(){
   if (!Object.keys(d.tags).length) return;
   if (d.mode === 'range' && (!d.tsEnd || d.tsEnd - d.ts < 60000)){ toast('La hora «hasta» tiene que ser posterior a «desde»'); return; }
   if (d.vbusy){ toast('Espera a que termine de preparar el vídeo'); return; }
+  var repeat = !!d.repeat && (d.tracker === 'dieta' || d.tracker === 'medicacion');
+  if (repeat){ var pr = schedProblem(d); if (pr){ toast(pr); return; } }
   var btn = $('#saveBtn');
   btn._busy = true; btn.disabled = true; btn.textContent = 'Guardando…';
   Promise.resolve(d.pending).catch(function(){}).then(function(){
-    var e = mkEntry(d);
+    // Con «Repetir», este registro es el primero de la entrada periódica.
+    var sched = repeat ? newSched(d) : null;
+    var e = sched ? mkEntry(d, perId(sched.id, dayKey(d.ts))) : mkEntry(d);
     if (d.place) lsSet('lastPlace', d.place);
     return upsertEntry(e).then(function(){
+      if (sched){ S.app.schedules = (S.app.schedules || []).concat([sched]); return saveCfg(); }
+    }).then(function(){
       if (e.photo && !e.driveId) return enqueue({ t:'photo', id:e.photo });
     }).then(function(){
       if (e.video && !e.videoDriveId) return enqueue({ t:'video', id:e.video });
@@ -2562,7 +2627,17 @@ function saveDraft(){
       var ds = d.tracker === 'dieta' ? dayStatus(daysOf('dieta').get(e.fecha) || []) : null;
       var msg = SAVED[d.tracker];
       if (ds && ds.st === 'over') msg += ' · ' + (e.fecha === dayKey(new Date()) ? 'hoy' : 'ese día') + ' ' + Math.round(ds.kcal) + ' kcal, ' + Math.round(ds.diff) + ' por encima del límite';
-      toast(msg, 'Deshacer', function(){ removeEntry(e.id); toast('Registro eliminado'); });
+      if (sched) msg += ' · se repetirá cada día a las ' + sched.hora;
+      toast(msg, 'Deshacer', function(){
+        if (!sched){ removeEntry(e.id); toast('Registro eliminado'); return; }
+        // deshace también la entrada periódica y lo que haya añadido ya
+        S.app.schedules = (S.app.schedules || []).filter(function(x){ return x.id !== sched.id; });
+        saveCfg();
+        S.entries.filter(function(x){ return x.id.indexOf('per-' + sched.id + '-') === 0; }).forEach(function(x){ removeEntry(x.id); });
+        S.logSig = ''; render();
+        toast('Registro y entrada periódica eliminados');
+      });
+      if (sched) runSchedules();
     });
   }).catch(function(){
     toast('No se pudo guardar');
@@ -2608,6 +2683,140 @@ function removeEntry(id){
     .catch(function(){ toast('No se pudo borrar'); });
 }
 
+/* ============ entradas periódicas ============ */
+/* Comidas o medicación que se repiten cada día a la misma hora (app.schedules).
+   Cada día se crea un registro normal con id «per-<id>-<AAAAMMDD>»: así nunca se
+   duplica y, una vez creado, se cambia o se borra como cualquier otro.
+   s.last es el último día ya creado; lo borrado no se vuelve a crear. */
+var SCHED_BACKFILL = 7;            // si llevas días sin abrir la app, recupera como mucho estos
+var SCHED_KINDS = { comida:1, medicamento:1, suplemento:1, otro:1 };
+var _schedBusy = false;
+function perId(sid, key){ return 'per-' + sid + '-' + key.replace(/-/g, ''); }
+function isPeriodic(e){ return /^per-/.test(String(e && e.id || '')); }
+function schedOfEntry(e){
+  var m = /^per-(.+)-\d{8}$/.exec(String(e && e.id || ''));
+  return m ? (S.app.schedules || []).filter(function(s){ return s.id === m[1]; })[0] || null : null;
+}
+function schedDesc(s){
+  return Object.keys(s.tags || {}).map(function(id){
+    var t = tagById(id), v = s.tags[id];
+    if (!t) return 'Etiqueta borrada';
+    return t.label + (t.unit ? ' ' + amtLabel(t, v) : (v > 1 ? ' ×' + v : ''));
+  }).join(' + ');
+}
+/** Por qué no se puede repetir lo marcado (o '' si se puede). */
+function schedProblem(d){
+  if (d.mode === 'range') return 'Una entrada periódica va a una hora exacta: cambia «Franja» por «Hora».';
+  var bad = Object.keys(d.tags || {}).map(tagById).filter(function(t){ return !t || !SCHED_KINDS[t.kind]; });
+  if (bad.length) return 'Solo se repiten comidas y medicación. Quita ' + bad.map(function(t){ return t ? '«' + t.label + '»' : 'la etiqueta borrada'; }).join(', ') + ' o desmarca «Repetir».';
+  return '';
+}
+function newSched(d){
+  return { id:uid().slice(0, 10), tracker:d.tracker, hora:hhmm(d.ts), tags:Object.assign({}, d.tags), note:(d.note || '').trim(),
+           active:true, last:dayKey(d.ts), created:Date.now() };
+}
+/** Al reactivar o cambiar la hora: solo se añaden las tomas que aún no han llegado (si hoy ya pasó la hora, desde mañana). */
+function schedRestartDay(s){
+  var now = new Date(), p = String(s.hora).split(':');
+  var at = new Date(now); at.setHours(+p[0] || 0, +p[1] || 0, 0, 0);
+  var y = new Date(now); y.setDate(now.getDate() - 1);
+  return now >= at ? dayKey(now) : dayKey(y);
+}
+/** Crea los registros de las entradas periódicas que ya tocaban. Devuelve cuántos ha creado. */
+function runSchedules(){
+  var list = (S.app && S.app.schedules || []).filter(function(s){ return s.active; });
+  if (_schedBusy || !S.loadedConfig || !list.length) return Promise.resolve(0);
+  _schedBusy = true;
+  var now = new Date(), today = dayKey(now), have = {}, made = [], moved = false;
+  S.entries.forEach(function(e){ have[e.id] = 1; });
+  var oldest = new Date(now); oldest.setHours(0,0,0,0); oldest.setDate(oldest.getDate() - SCHED_BACKFILL);
+  list.forEach(function(s){
+    var hm = /^(\d{1,2}):(\d{2})$/.exec(s.hora || '');
+    if (!hm) return;
+    var d;
+    if (s.last){ var p = s.last.split('-'); d = new Date(+p[0], +p[1]-1, +p[2] + 1); }
+    else { d = new Date(now); d.setHours(0,0,0,0); }
+    if (d < oldest) d = new Date(oldest);
+    for (var guard = 0; guard <= SCHED_BACKFILL + 1; guard++){
+      var key = dayKey(d);
+      if (key > today) break;
+      var ts = new Date(d.getFullYear(), d.getMonth(), d.getDate(), +hm[1], +hm[2], 0, 0);
+      if (ts > now) break;
+      var id = perId(s.id, key), tags = {};
+      Object.keys(s.tags || {}).forEach(function(t){ if (tagById(t)) tags[t] = s.tags[t]; });
+      if (!have[id] && Object.keys(tags).length){
+        made.push(mkEntry({ tracker:s.tracker, mode:'point', ts:ts, tags:tags, note:s.note || '' }, id));
+        have[id] = 1;
+      }
+      s.last = key; moved = true;
+      d = new Date(d.getFullYear(), d.getMonth(), d.getDate() + 1);
+    }
+  });
+  if (!moved){ _schedBusy = false; return Promise.resolve(0); }
+  if (made.length) rebuildEntries(S.entries.concat(made));
+  var put = made.reduce(function(pr, e){ return pr.then(function(){ return idbPut('entries', e); }); }, Promise.resolve());
+  return put.then(function(){
+    if (made.length) return enqueueBulk(made.map(function(e){ return { t:'entry', id:e.id, photos:[] }; }));
+  }).then(saveCfg).then(function(){
+    _schedBusy = false;
+    if (made.length){ S.logSig = ''; render(); }
+    return made.length;
+  }, function(){ _schedBusy = false; return 0; });
+}
+/** En Registrar: las periódicas activas de este seguimiento. */
+function schedLine(tr){
+  var all = S.app.schedules || [], mine = all.filter(function(s){ return s.tracker === tr && s.active; });
+  if (!all.length) return '';
+  return '<p class="schedlist">' + (mine.length ? 'Activas: ' + mine.map(function(s){ return schedDesc(s) + ' a las ' + s.hora; }).join('; ') + '. ' : '') +
+    '<button class="lnkbtn" data-sched>Ver entradas periódicas</button></p>';
+}
+function afterCfgChange(){ S.logSig = ''; S.lastCfgWrite = 0; render(); }
+function openSchedSheet(){
+  function body(){
+    var list = S.app.schedules || [];
+    var h = '<h2>Entradas periódicas</h2><p class="muted" style="margin:0 0 14px;font-size:.88rem">Cada una se añade sola todos los días a su hora, cuando abres la app (si llevas días sin abrirla, recupera hasta ' + SCHED_BACKFILL + ' días). Lo que ya se ha añadido es un registro normal: lo cambias o lo borras desde el historial.</p>';
+    if (!list.length) h += '<div class="empty" style="padding:8px 0 4px">'+ICON.empty+'<p>Todavía no hay ninguna.</p><p class="tiny">En Registrar → Dieta o Medicación, marca lo de siempre, activa «Repetir cada día a esta hora» y guarda.</p></div>';
+    list.forEach(function(s, i){
+      var T = trackerById(s.tracker);
+      h += '<div class="row srow' + (s.active ? '' : ' off') + '" style="' + kstyle(T.c) + '"><div class="sb"><b><span class="kdot"></span>' + esc(schedDesc(s)) + '</b>' +
+        '<div class="tiny">' + esc(T.label) + ' · cada día a las <input type="time" data-sh="' + i + '" value="' + esc(s.hora) + '" aria-label="Hora">' + (s.active ? '' : ' · desactivada') + '</div>' +
+        (s.note ? '<div class="tiny">' + esc(s.note) + '</div>' : '') + '</div>' +
+        '<button class="son" data-son="' + i + '">' + (s.active ? 'Desactivar' : 'Activar') + '</button>' +
+        '<button class="del" data-sdel="' + i + '" aria-label="Eliminar">' + ICON.trash + '</button></div>';
+    });
+    return h + '<div class="sheet-actions"><button class="secondary" id="sClose">Cerrar</button></div>';
+  }
+  function paint(){ openSheet(body(), bind); }
+  function bind(sh){
+    var list = S.app.schedules || [];
+    $('#sClose').onclick = closeSheet;
+    sh.querySelectorAll('[data-sh]').forEach(function(inp){ inp.addEventListener('change', function(){
+      var s = list[+inp.dataset.sh];
+      if (!/^\d{2}:\d{2}$/.test(inp.value)){ inp.value = s.hora; return; }
+      s.hora = inp.value;
+      // vale desde la próxima toma: si hoy ya pasó la nueva hora, no se añade la de hoy (quizá ya la apuntaste)
+      var r = schedRestartDay(s);
+      if (!s.last || s.last < r) s.last = r;
+      saveCfg(); afterCfgChange(); runSchedules();
+      toast('Ahora se añade cada día a las ' + s.hora);
+    }); });
+    sh.querySelectorAll('[data-son]').forEach(function(b){ b.onclick = function(){
+      var s = list[+b.dataset.son];
+      s.active = !s.active;
+      if (s.active) s.last = schedRestartDay(s);
+      saveCfg(); afterCfgChange(); paint();
+      toast(s.active ? 'Activada: la próxima, a las ' + s.hora : 'Desactivada: deja de añadirse');
+    }; });
+    sh.querySelectorAll('[data-sdel]').forEach(function(b){ b.onclick = function(){
+      var i = +b.dataset.sdel;
+      confirmSheet('Eliminar esta entrada periódica', 'Dejará de añadirse. Lo que ya se añadió se queda en el historial.', 'Eliminar', function(){
+        list.splice(i, 1); saveCfg(); afterCfgChange(); paint(); toast('Entrada periódica eliminada');
+      });
+    }; });
+  }
+  paint();
+}
+
 /* ============ historial ============ */
 function matchFilter(e){
   if (S.filter.place && e.place !== S.filter.place) return false;
@@ -2626,6 +2835,7 @@ function entryHTML(e){
     tags += '<span class="minitag" style="'+kstyle(kindOf(t ? t.kind : 'otro').c)+'">'+esc((t ? t.label : 'Etiqueta borrada') + extra)+'</span>';
   });
   var sub = [];
+  if (isPeriodic(e)) sub.push('entrada periódica');
   if ((e.tracker || 'arenero') === 'arenero'){ var pl = e.place ? placeById(e.place) : null; sub.push(pl ? pl.label : 'Sin ubicación'); }
   if (isRange(e)) sub.push((isDurEntry(e) ? 'duró ' : 'franja de ') + fmtDur(entryEnd(e) - entryStart(e)));
   var cls = 'entry', bstyle = '';
@@ -2674,7 +2884,9 @@ function renderHist(){
     var items = dm.get(keys[i]).filter(matchFilter).slice().reverse();
     if (!items.length) continue;
     shown++;
+    var xd = isExcluded(tr, keys[i]) ? exclOf(keys[i]) : null;
     body += '<div class="daygroup"><div class="dayhead"><h3>'+esc(dayLabel(keys[i]))+'</h3><span>'+esc(summaryLine(tr, items))+'</span></div>' +
+      (xd ? '<button class="xpill" data-xday="'+esc(keys[i])+'">Fuera de los resúmenes · '+esc(xd.note || 'No registrado')+'</button>' : '') +
       items.map(entryHTML).join('') + '</div>';
   }
   if (!body) h += '<div class="empty">'+ICON.empty+'<p>Aquí no hay nada todavía.</p><p class="tiny">Los registros aparecerán agrupados por día.</p></div>';
@@ -2693,6 +2905,7 @@ function renderHist(){
     };
   });
   v.querySelectorAll('.entry').forEach(function(b){ b.onclick = function(){ openEntrySheet(b.dataset.id); }; });
+  v.querySelectorAll('[data-xday]').forEach(function(b){ b.onclick = function(){ openExclSheet(b.dataset.xday); }; });
   if ($('#moreBtn')) $('#moreBtn').onclick = function(){ S.histLimit += 45; renderHist(); };
   hydratePhotos(v);
 }
@@ -2715,7 +2928,10 @@ function openEntrySheet(id){
            video:e.video || null, videoDriveId:e.videoDriveId || null, videoPosterDriveId:e.videoPosterDriveId || null }
   };
   var d = sheetDraft;
-  var h = '<h2>Editar · '+esc(trackerById(tr).label)+'</h2><div data-time></div>' +
+  var ps = isPeriodic(e) ? schedOfEntry(e) : null;
+  var h = '<h2>Editar · '+esc(trackerById(tr).label)+'</h2>' +
+    (isPeriodic(e) ? '<p class="tiny muted" style="margin:-4px 2px 10px">Añadido por una entrada periódica' + (ps ? ' (cada día a las ' + esc(ps.hora) + ')' : '') + '. Lo que cambies o borres aquí solo afecta a este día.</p>' : '') +
+    '<div data-time></div>' +
     '<div class="sect">'+chipsHTML(tr)+(tr === 'dieta' ? '<div data-vpanel></div>' : '')+'</div>' +
     (tr === 'arenero' && activePlaces().length ? placesHTML() : '') +
     '<div class="sect"><h2>Nota</h2><textarea class="note" data-note style="margin-top:0">'+esc(d.note)+'</textarea>' +
@@ -2859,15 +3075,16 @@ function pdfRange(o){
     var n = Math.min(800, Math.max(1, daysBetween(a, b) + 1));
     var p = a.split('-'), d0 = new Date(+p[0], +p[1]-1, +p[2]), out = [];
     for (var i=0;i<n;i++){ var x = new Date(d0); x.setDate(d0.getDate()+i); out.push(dayKey(x)); }
-    return { keys:out, label:'Del ' + longDate(a) + ' al ' + longDate(b), span:n };
+    return { keys:out, label:'Del ' + longDate(a) + ' al ' + longDate(b) + (b >= dayKey(new Date()) ? ' (hoy no cuenta en las medias)' : ''), span:n };
   }
+  // Los periodos fijos son días completos: hasta ayer.
   if (o.period === 0){
     var sorted = Array.from(S.days.keys()).sort();
-    var first = sorted[0] || dayKey(new Date());
-    var span = Math.min(800, Math.max(1, daysBetween(first, dayKey(new Date())) + 1));
-    return { keys:rangeKeys(span), label:'Historial completo', span:span };
+    var today = dayKey(new Date()), first = sorted[0] || today;
+    var span = Math.min(800, Math.max(0, daysBetween(first, today)));
+    return { keys:pastKeys(span), label:'Historial completo, hasta ayer', span:span };
   }
-  return { keys:rangeKeys(o.period), label:'Últimos ' + o.period + ' días', span:o.period };
+  return { keys:pastKeys(o.period), label:'Últimos ' + o.period + ' días completos', span:o.period };
 }
 
 function loadPhoto(key){
@@ -2972,7 +3189,7 @@ function obsFor(tr){
         (a30.kcalLost ? '; ' + fmtKcal(a30.kcalLost) + ' estimadas perdidas' : '') + (a30.kcalRisk ? '; ' + fmtKcal(a30.kcalRisk) + ' de comidas previas en duda, sin estimar.' : '.') });
     }
     var at = agg(dm.get(today) || []);
-    var foodDays = rangeKeys(15).slice(0, 14).filter(function(k){ return agg(dm.get(k) || []).kindEv.comida; });
+    var foodDays = statKeys('dieta', pastKeys(14)).filter(function(k){ return agg(dm.get(k) || []).kindEv.comida; });
     var tds = dayStatus(dm.get(today) || []);
     if (tds && tds.st === 'over')
       out.push({ t:'Hoy lleva ' + fmtKcal(tds.kcal) + ': ' + Math.round(tds.diff) + ' por encima del límite diario de ' + tds.L + ' kcal.', warn:true });
@@ -2999,10 +3216,10 @@ function obsFor(tr){
     if (worst) out.push({ t:'El comedero vacío más largo de los últimos 30 días: ' + fmtDur(entryEnd(worst) - entryStart(worst)) + ', ' + (function(dl){ return (dl === 'Hoy' || dl === 'Ayer') ? dl.toLowerCase() : 'el ' + dl.toLowerCase(); })(dayLabel(worst.fecha)) + '.' });
   }
   if (tr === 'asma'){
-    var first = list[0].fecha, win = rangeKeys(14).filter(function(k){ return k >= first; });
+    var first = list[0].fecha, win = statKeys('asma', pastKeys(14)).filter(function(k){ return k >= first; });
     if (win.length >= 3){
       var free = win.filter(function(k){ return !(dm.get(k) || []).length; }).length;
-      out.push({ t:'En los últimos ' + win.length + ' días, ' + free + ' sin ningún episodio.' });
+      out.push({ t:'En los últimos ' + win.length + ' días completos, ' + free + ' sin ningún episodio.' });
     }
   }
   if (tr === 'medicacion'){
@@ -3020,7 +3237,7 @@ function obsFor(tr){
     if (nd30) out.push({ t:'En los últimos 30 días: ' + plural(nd30, 'toma dudosa', 'tomas dudosas') + ' por un vómito en las 2 horas siguientes.' });
   }
   if (tr !== 'medicacion' && tr !== 'dieta'){
-    var fk = list[0].fecha, prev = rangeKeys(15).slice(0, 14).filter(function(k){ return k >= fk; });
+    var fk = list[0].fecha, prev = statKeys(tr, pastKeys(14)).filter(function(k){ return k >= fk; });
     if (prev.length >= 5){
       var sum = 0; prev.forEach(function(k){ sum += (dm.get(k) || []).length; });
       var avg = sum / prev.length, tN = (dm.get(today) || []).length;
@@ -3035,17 +3252,29 @@ function obsFor(tr){
 }
 
 /* ============ datos de gráficos ============ */
+/**
+ * Días del periodo del resumen: solo días completos (hasta ayer). keys = los que se dibujan
+ * (como mucho 180); stat = los que cuentan (sin los que se dejaron fuera); span = cuántos cuentan.
+ */
 function periodInfo(tr){
-  var n = S.period, keys, span, all = !n;
-  if (n){ keys = rangeKeys(n); span = n; }
+  var n = S.period, today = dayKey(new Date()), full;
+  if (n) full = pastKeys(n);
   else {
     var list = entriesOf(tr);
-    var first = list.length ? list[0].fecha : dayKey(new Date());
-    span = Math.max(1, daysBetween(first, dayKey(new Date())) + 1);
-    keys = rangeKeys(Math.min(span, 180));
+    full = pastKeys(list.length ? Math.max(0, daysBetween(list[0].fecha, today)) : 0);
   }
-  var set = {}; keys.forEach(function(k){ set[k] = 1; });
-  return { keys:keys, span:span, set:set, all:all };
+  var stat = statKeys(tr, full), set = {};
+  stat.forEach(function(k){ set[k] = 1; });
+  return { keys: full.length > 180 ? full.slice(-180) : full, full:full, stat:stat, span:stat.length, set:set, all:!n,
+           excl: full.filter(function(k){ return isExcluded(tr, k); }) };
+}
+/** «Del 8 al 14 oct · 7 días completos (hoy no cuenta hasta que acabe) · 1 fuera». */
+function periodNote(P){
+  if (!P.full.length) return 'Hoy todavía no ha terminado, así que no hay ningún día completo que resumir.';
+  var t = (P.full.length === 1 ? 'Solo ' + dayLabel(P.full[0]).toLowerCase() : 'Del ' + shortDate(P.full[0]) + ' al ' + shortDate(P.full[P.full.length - 1])) +
+    ': ' + plural(P.span, 'día completo', 'días completos') + '. Hoy no cuenta hasta que termine.';
+  if (P.excl.length) t += ' ' + (P.excl.length === 1 ? '1 día queda fuera' : P.excl.length + ' días quedan fuera') + ' (en los gráficos, con borde punteado).';
+  return t;
 }
 function dailyRows(tr, keys){
   var dm = daysOf(tr);
@@ -3156,8 +3385,14 @@ function barsSVG(rows, tr, o){
   if (o.limit) max = Math.max(max, o.limit * 1.08);
   var s = '<svg viewBox="0 0 '+W+' '+(H+16)+'" role="img" aria-label="'+esc(o.label || '')+'">';
   s += '<line x1="0" y1="'+H+'" x2="'+W+'" y2="'+H+'" stroke="var(--line)"/>';
+  // Días que se dejaron fuera de los resúmenes: un hueco con borde punteado en lugar de su barra.
+  var ex = rows.map(function(r){ return !!(o.dates && isExcluded(tr, r.k)); });
   rows.forEach(function(r, i){
     var x = i * (bw + gap), y = H, any = false;
+    if (ex[i]){
+      s += '<rect class="xday" x="'+x.toFixed(2)+'" y="8" width="'+bw.toFixed(2)+'" height="'+(H-8)+'" rx="'+Math.min(2, bw/3).toFixed(2)+'" fill="none" stroke="var(--ink-3)" stroke-opacity=".55" stroke-width=".8" stroke-dasharray="2 2"/>';
+      return;
+    }
     r.segs.forEach(function(g){
       if (!g.v) return; any = true;
       var hh = g.v / max * (H - 8); y -= hh;
@@ -3170,13 +3405,13 @@ function barsSVG(rows, tr, o){
     s += '<line x1="0" x2="'+W+'" y1="'+ly+'" y2="'+ly+'" stroke="var(--warn)" stroke-width="1.2" stroke-dasharray="4 3"/>' +
          '<text x="'+W+'" y="'+(ly - 3)+'" font-size="8.5" fill="var(--warn)" text-anchor="end">límite '+o.limit+'</text>';
     rows.forEach(function(r, i){
-      if (!r.over) return;
+      if (!r.over || ex[i]) return;
       var tot = 0; r.segs.forEach(function(g2){ tot += g2.v; });
       s += '<circle cx="'+(i*(bw+gap)+bw/2).toFixed(2)+'" cy="'+Math.max(3, H - tot / max * (H - 8) - 4).toFixed(2)+'" r="'+Math.max(1.4, Math.min(2.6, bw/2)).toFixed(2)+'" fill="var(--warn)"/>';
     });
   }
   rows.forEach(function(r, i){
-    if (!r.vomit) return;
+    if (!r.vomit || ex[i]) return;
     var tot = 0; r.segs.forEach(function(g2){ tot += g2.v; });
     var cx = i*(bw+gap)+bw/2, top = H - tot / max * (H - 8) - (r.over && o.limit ? 10 : 4), hw = Math.max(1.8, Math.min(3, bw/2));
     top = Math.max(4, top);
@@ -3219,7 +3454,8 @@ function legendHTML(kinds){
 function kpi(o){
   return '<div class="kpi"'+(o.wide ? ' style="grid-column:1/-1"' : '')+'><div class="v"'+(o.c ? ' style="color:'+o.c+'"' : '')+'>'+esc(o.v)+'</div><div class="k">'+esc(o.k)+'</div></div>';
 }
-function kpisFor(tr, ev, span){
+/** Medias del periodo. span = días que cuentan; wts = pesadas para el cambio de peso (el peso es una medida: cuenta también la de hoy). */
+function kpisFor(tr, ev, span, wts){
   var a = agg(ev), out = [];
   function pd(x){ return fmtNum(Math.round(x / span * 10) / 10); }
   if (tr === 'arenero'){
@@ -3229,8 +3465,9 @@ function kpisFor(tr, ev, span){
   } else if (tr === 'dieta'){
     var lw2 = lastWeight();
     if (lw2) out.push({ v:fmtKg(lw2.v) + ' kg', k:'último peso', c:kcolor('peso') });
-    if (a.weights.length >= 2){
-      var dW = a.weights[a.weights.length - 1].v - a.weights[0].v;
+    var W2 = wts || a.weights;
+    if (W2.length >= 2){
+      var dW = W2[W2.length - 1].v - W2[0].v;
       out.push({ v:(dW >= 0 ? '+' : '−') + fmtKg(Math.abs(dW)) + ' kg', k:'cambio de peso en el periodo', c:kcolor('peso') });
     }
     var fdays = {};
@@ -3314,22 +3551,30 @@ function renderStats(){
     v.innerHTML = h + '<div class="empty">'+ICON.empty+'<p>Aún no hay datos de '+esc(trackerById(tr).label.toLowerCase())+'.</p><p class="tiny">En cuanto registres unos días verás medias, gráficos y cambios de patrón.</p></div>';
     bindTrackerBar(v); return;
   }
-  var P = periodInfo(tr);
-  var ev = P.all ? all : all.filter(function(e){ return P.set[e.fecha]; });
+  var P = periodInfo(tr), today = dayKey(new Date());
+  var ev = all.filter(function(e){ return P.set[e.fecha]; });
   var barKeys = P.keys.length > 90 ? P.keys.slice(-90) : P.keys;
+  var nx = Object.keys(S.app.excluded || {}).filter(function(k){ return isExcluded(tr, k); }).length;
   h += '<div class="segment" style="margin:2px 0 14px">' + [[7,'7 días'],[30,'30 días'],[90,'90 días'],[0,'Todo']].map(function(p){
     return '<button data-p="'+p[0]+'" aria-pressed="'+(S.period === p[0])+'">'+p[1]+'</button>';
   }).join('') + '</div>';
-  h += '<div class="kpis">' + kpisFor(tr, ev, P.span).map(kpi).join('') + '</div>';
+  h += '<p class="pnote">' + esc(periodNote(P)) + ' <button class="lnkbtn" id="exclBtn">Días fuera de los resúmenes' + (nx ? ' (' + nx + ')' : '') + '</button></p>';
+  var wts = weightsOf().filter(function(w){ return dayKey(new Date(w.t)) >= (P.full[0] || today); });
+  if (P.span) h += '<div class="kpis">' + kpisFor(tr, ev, P.span, wts).map(kpi).join('') + '</div>';
   h += '<div style="margin-top:12px">' + obsFor(tr).map(function(l){
     return '<div class="notice'+(l.alarm ? ' alarm' : (l.warn ? ' warn' : ''))+'">'+((l.warn || l.alarm) ? ICON.alert : ICON.info)+'<div>'+esc(l.t)+'</div></div>';
   }).join('') + '</div>';
   if (tr === 'arenero' || tr === 'asma') h += '<p class="tiny muted" style="margin:6px 2px 14px">Observaciones sacadas de tus registros, no un diagnóstico. Si algo te preocupa, llévale estos datos a tu veterinario.</p>';
+  if (!P.span){
+    v.innerHTML = h + '<div class="empty">'+ICON.empty+'<p>' + (P.full.length ? 'Todos los días de este periodo están fuera de los resúmenes.' : 'Las medias y los gráficos empiezan mañana, con el día de hoy ya completo.') + '</p><p class="tiny">Lo de hoy lo tienes en la pantalla Hoy.</p></div>' +
+      '<button class="ghost" id="statsPdf" style="margin-top:14px">Exportar a PDF</button>';
+    bindStats(v, tr); return;
+  }
 
   var kinds = trackerById(tr).kinds.filter(function(k){ return tagsOf(tr).some(function(t){ return t.kind === k; }); });
   if (tr === 'dieta'){
     var units = Object.keys(agg(ev).units);
-    var wsvg = weightSVG(weightsOf(), barKeys);
+    var wsvg = weightSVG(weightsOf(), barKeys.concat([today]));
     var kf = foodsWithKcal(ev);
     if (kf.length){
       h += box('Calorías al día', 'Cada color es una comida: gramos × sus kcal.' + (agg(ev).kinds.vomito ? ' En tono claro, lo comido en la hora anterior a un vómito sin estimar; en color de vómito, encima, las kcal que estimaste perdidas; el triángulo marca los días con vómitos.' : '') + (missingKcalNames(ev).length ? ' Faltan comidas sin kcal apuntadas.' : ''),
@@ -3384,12 +3629,68 @@ function renderStats(){
   Object.keys(groups).forEach(function(u){
     h += box(u ? 'Cantidades totales (' + u + ')' : 'Por etiqueta', null, hbars(groups[u]));
   });
-  if (tr !== 'dieta') h += box('Por día de la semana', 'Media en el periodo.', barsSVG(weekdayRows(tr, barKeys), tr, { every:1, h:66, label:'Día de la semana' }));
+  if (tr !== 'dieta') h += box('Por día de la semana', 'Media en el periodo.', barsSVG(weekdayRows(tr, P.stat), tr, { every:1, h:66, label:'Día de la semana' }));
   h += '<button class="ghost" id="statsPdf" style="margin-top:14px">Exportar a PDF</button>';
   v.innerHTML = h;
+  bindStats(v, tr);
+}
+function bindStats(v, tr){
   bindTrackerBar(v);
   v.querySelectorAll('[data-p]').forEach(function(b){ b.onclick = function(){ S.period = +b.dataset.p; renderStats(); }; });
   $('#statsPdf').onclick = function(){ openPdfSheet(S.period, tr); };
+  $('#exclBtn').onclick = function(){ openExclSheet(); };
+}
+
+/* ============ días fuera de los resúmenes ============ */
+function exclTrText(x){
+  var trs = Array.isArray(x.tr) ? x.tr : TRACKERS.map(function(t){ return t.id; });
+  return trs.length === TRACKERS.length ? 'Todos los seguimientos' : trs.map(function(id){ return trackerById(id).label; }).join(', ');
+}
+/** Elegir un día que no cuente en medias, gráficos ni PDF (sus registros no se tocan). */
+function openExclSheet(key){
+  var today = dayKey(new Date()), y = new Date(); y.setDate(y.getDate() - 1);
+  var cur = key || dayKey(y);
+  function body(){
+    var x = exclOf(cur), all = S.app.excluded || {}, list = Object.keys(all).sort().reverse();
+    var trs = x && Array.isArray(x.tr) ? x.tr : TRACKERS.map(function(t){ return t.id; });
+    return '<h2>Días fuera de los resúmenes</h2>' +
+      '<p class="muted" style="margin:0 0 14px;font-size:.88rem">Para los días que no pudiste registrar bien. No cuentan en las medias, los gráficos ni el PDF, así que no bajan ni suben los promedios. Sus registros no se borran: siguen en el historial y en la hoja. Los avisos de salud los siguen teniendo en cuenta.</p>' +
+      '<div class="field"><label for="xDate">Día</label><input type="date" id="xDate" max="' + today + '" value="' + cur + '"></div>' +
+      '<div class="group-label"><b>Qué seguimientos quedan fuera ese día</b></div>' +
+      TRACKERS.map(function(t){ return '<label class="check"><input type="checkbox" data-xt="' + t.id + '"' + (trs.indexOf(t.id) !== -1 ? ' checked' : '') + '><span>' + esc(t.label) + '</span></label>'; }).join('') +
+      '<div class="field" style="margin-top:12px"><label for="xNote">Nota</label><input type="text" id="xNote" placeholder="No registrado" value="' + esc(x ? x.note || '' : '') + '"></div>' +
+      '<div class="sheet-actions"><button class="secondary" id="xClose">Cerrar</button><button class="primary" id="xSave">' + (x ? 'Guardar cambios' : 'Dejar fuera') + '</button></div>' +
+      (list.length ? '<div class="group-label" style="margin-top:20px"><b>Ya están fuera</b><span>toca uno para cambiarlo</span></div>' + list.map(function(k){
+        var e = all[k];
+        return '<div class="xrow"><button class="xb" data-xedit="' + k + '"><b>' + esc(dayLabel(k)) + (k.slice(0, 4) !== today.slice(0, 4) ? ' ' + k.slice(0, 4) : '') + '</b><span>' + esc(exclTrText(e) + ' · ' + (e.note || 'No registrado')) + '</span></button>' +
+          '<button class="del" data-xdel="' + k + '" aria-label="Volver a contar este día">' + ICON.trash + '</button></div>';
+      }).join('') : '');
+  }
+  function paint(){ openSheet(body(), bind); }
+  function bind(sh){
+    $('#xClose').onclick = closeSheet;
+    $('#xDate').addEventListener('change', function(){ if (/^\d{4}-\d{2}-\d{2}$/.test($('#xDate').value)){ cur = $('#xDate').value; paint(); } });
+    $('#xSave').onclick = function(){
+      var k = $('#xDate').value;
+      if (!/^\d{4}-\d{2}-\d{2}$/.test(k)){ toast('Elige el día'); return; }
+      if (k > today){ toast('Ese día todavía no ha llegado'); return; }
+      var trs = Array.prototype.slice.call(sh.querySelectorAll('[data-xt]')).filter(function(c){ return c.checked; }).map(function(c){ return c.dataset.xt; });
+      if (!trs.length){ toast('Marca al menos un seguimiento'); return; }
+      S.app.excluded = S.app.excluded || {};
+      S.app.excluded[k] = { tr:trs, note:$('#xNote').value.trim() || 'No registrado' };
+      saveCfg(); afterCfgChange();
+      cur = k; paint();
+      toast(dayLabel(k) + ' queda fuera de los resúmenes');
+    };
+    sh.querySelectorAll('[data-xedit]').forEach(function(b){ b.onclick = function(){ cur = b.dataset.xedit; paint(); }; });
+    sh.querySelectorAll('[data-xdel]').forEach(function(b){ b.onclick = function(){
+      var k = b.dataset.xdel;
+      delete S.app.excluded[k];
+      saveCfg(); afterCfgChange(); paint();
+      toast(dayLabel(k) + ' vuelve a contar');
+    }; });
+  }
+  paint();
 }
 
 /* ============ ajustes ============ */
@@ -3415,6 +3716,15 @@ function renderSettings(){
     '<span class="tiny muted" style="flex:1">kcal al día. Te avisa al pasarte y verás el cumplimiento por día, semana y mes. Déjalo vacío para no usarlo.</span></div></div>';
   h += '<div class="sect"><h2>El gato</h2><div class="setrow"><label for="catName" style="flex:none;font-size:.88rem;color:var(--ink-2)">Nombre</label>' +
     '<input type="text" id="catName" placeholder="Sin nombre" value="'+esc(S.app.catName || '')+'"></div></div>';
+
+  var sch = S.app.schedules || [], act = sch.filter(function(x){ return x.active; }).length;
+  h += '<div class="sect"><h2>Entradas periódicas</h2>' +
+    '<p class="tiny muted" style="margin:-4px 2px 9px">Comida o medicación que se repite cada día a la misma hora y se añade sola. Se crean en Registrar, marcando «Repetir cada día a esta hora» antes de guardar.</p>' +
+    '<button class="ghost" id="schedBtn">' + (sch.length ? 'Ver y gestionar · ' + plural(act, 'activa', 'activas') + (sch.length > act ? ', ' + (sch.length - act) + ' desactivada' + (sch.length - act > 1 ? 's' : '') : '') : 'Ver entradas periódicas') + '</button></div>';
+  var nxd = Object.keys(S.app.excluded || {}).length;
+  h += '<div class="sect"><h2>Días fuera de los resúmenes</h2>' +
+    '<p class="tiny muted" style="margin:-4px 2px 9px">Los días que no pudiste registrar bien, para que no tiren de las medias. Sus registros no se borran.</p>' +
+    '<button class="ghost" id="exclBtn2">' + (nxd ? 'Ver y cambiar · ' + plural(nxd, 'día', 'días') : 'Elegir días') + '</button></div>';
 
   h += '<div class="sect"><h2>Etiquetas</h2><div class="trackbar">' + TRACKERS.map(function(t){
     return '<button data-st="'+t.id+'" aria-pressed="'+(st === t.id)+'" style="'+kstyle(t.c)+'"><span class="kdot"></span>'+esc(t.label)+'</button>';
@@ -3502,6 +3812,8 @@ function bindSettings(){
   var v = $('#view-set');
   function reSet(){ saveCfg(); S.logSig = ''; S.lastCfgWrite = 0; renderSettings(); }
   $('#connBtn').onclick = function(){ openConnSheet(false); };
+  $('#schedBtn').onclick = openSchedSheet;
+  $('#exclBtn2').onclick = function(){ openExclSheet(); };
   if ($('#syncBtn')) $('#syncBtn').onclick = function(){
     var b = $('#syncBtn'); b.disabled = true; b.textContent = 'Sincronizando…';
     syncNow(true).then(function(){ S.lastCfgWrite = 0; renderSettings(); });
@@ -3670,8 +3982,14 @@ function paintPdf(JsPDF, o, R, set, trs, shots, imgs){
     if (opt.limit) max = Math.max(max, opt.limit * 1.08);
     doc.setFontSize(6.5); tc(doc, PC.soft); doc.text('máx ' + fmtNum(Math.round(max*10)/10) + (opt.unit ? ' ' + opt.unit : ''), M, y - 0.5);
     dc(doc, PC.line); doc.setLineWidth(0.3); doc.line(M, y + H, PW - M, y + H);
+    var ex = rows.map(function(r){ return !!(opt.dates && isExcluded(tr, r.k)); });
     rows.forEach(function(r, i){
       var bx = M + i*(bw+gap), by = y + H;
+      if (ex[i]){
+        dc(doc, PC.soft); doc.setLineWidth(0.2); doc.setLineDashPattern([0.6, 0.6], 0);
+        doc.rect(bx, y + 1, bw, H - 1, 'S'); doc.setLineDashPattern([], 0);
+        return;
+      }
       r.segs.forEach(function(g){
         if (!g.v) return;
         var hh = g.v / max * H; by -= hh;
@@ -3684,14 +4002,14 @@ function paintPdf(JsPDF, o, R, set, trs, shots, imgs){
       doc.line(M, ly, PW - M, ly); doc.setLineDashPattern([], 0);
       doc.setFontSize(6.5); tc(doc, PC.warn); doc.text('límite ' + opt.limit, PW - M, ly - 1, { align:'right' });
       rows.forEach(function(r, i){
-        if (!r.over) return;
+        if (!r.over || ex[i]) return;
         var tot = 0; r.segs.forEach(function(g2){ tot += g2.v; });
         fc(doc, PC.warn); doc.circle(M + i*(bw+gap) + bw/2, y + H - tot / max * H - 1.6, Math.max(0.5, Math.min(1, bw/2)), 'F');
       });
       doc.setFontSize(6.5); tc(doc, PC.soft);
     }
     rows.forEach(function(r, i){
-      if (!r.vomit) return;
+      if (!r.vomit || ex[i]) return;
       var tot = 0; r.segs.forEach(function(g2){ tot += g2.v; });
       var cx = M + i*(bw+gap) + bw/2, top = y + H - tot / max * H - (r.over && opt.limit ? 4 : 1.6), hw = Math.max(0.6, Math.min(1.2, bw/2));
       fc(doc, hexRgb(kindOf('vomito').c[0])); doc.triangle(cx - hw, top - hw, cx + hw, top - hw, cx, top + hw * 0.6, 'F');
@@ -3743,7 +4061,10 @@ function paintPdf(JsPDF, o, R, set, trs, shots, imgs){
   var barKeys = R.keys.length > 92 ? R.keys.slice(-92) : R.keys;
   trs.forEach(function(tr){
     var T = trackerById(tr);
-    var ev = entriesOf(tr).filter(function(e){ return set[e.fecha]; });
+    var ev = entriesOf(tr).filter(function(e){ return set[e.fecha]; });   // tabla: todo el periodo
+    var sk = statKeys(tr, R.keys), sset = {}; sk.forEach(function(k){ sset[k] = 1; });
+    var es = ev.filter(function(e){ return sset[e.fecha]; });             // medias y gráficos: los días que cuentan
+    var xk = R.keys.filter(function(k){ return isExcluded(tr, k); });
     need(24);
     fc(doc, hexRgb(T.c[0])); doc.rect(M, y, CW, 8, 'F');
     doc.setFont('helvetica','bold'); doc.setFontSize(12); doc.setTextColor(255,255,255);
@@ -3752,9 +4073,12 @@ function paintPdf(JsPDF, o, R, set, trs, shots, imgs){
     doc.text(plural(ev.length, 'registro', 'registros'), PW - M - 3, y + 5.6, { align:'right' });
     y += 12;
     if (!ev.length){ text('Sin registros en este periodo.', 9, PC.mid); y += 4; return; }
+    if (xk.length) text('Fuera de las medias y los gráficos (no se pudo registrar bien): ' + xk.map(function(k){ return shortDate(k) + ' (' + (exclOf(k).note || 'No registrado') + ')'; }).join(', ') + '.', 8.3, PC.mid);
+    var canSum = sk.length > 0;
+    if (!canSum) text('No hay ningún día completo que resumir en este periodo; abajo están los registros.', 8.8, PC.mid);
 
-    if (o.kpis){
-      var ks = kpisFor(tr, ev, R.span), bw = (CW - 3*3) / 4;
+    if (o.kpis && canSum){
+      var ks = kpisFor(tr, es, sk.length, weightsOf().filter(function(w){ return set[dayKey(new Date(w.t))]; })), bw = (CW - 3*3) / 4;
       ks.forEach(function(k, i){
         if (i % 4 === 0){ need(22); if (i) y += 23; }
         var x = M + (i % 4) * (bw + 3);
@@ -3770,7 +4094,7 @@ function paintPdf(JsPDF, o, R, set, trs, shots, imgs){
       var ls = obsFor(tr);
       if (ls.length){ h2('Observaciones'); ls.forEach(function(l){ text('• ' + l.t, 8.8, l.warn ? PC.warn : PC.ink); }); y += 3; }
     }
-    if (o.charts){
+    if (o.charts && canSum){
       if (tr === 'dieta'){
         var wg = weightGeom(weightsOf(), barKeys);
         if (wg){
@@ -3797,7 +4121,7 @@ function paintPdf(JsPDF, o, R, set, trs, shots, imgs){
           doc.text(shortDate(barKeys[barKeys.length - 1]), Lm + Wd, y + WH + 4, { align:'right' });
           y += WH + 9;
         }
-        var kfp = foodsWithKcal(ev);
+        var kfp = foodsWithKcal(es);
         if (kfp.length){
           h2('Calorías al día', 'kcal');
           bars(kcalRows(barKeys, kfp), tr, 26, { dates:true, unit:'kcal', limit:kcalLimit() });
@@ -3810,18 +4134,17 @@ function paintPdf(JsPDF, o, R, set, trs, shots, imgs){
             lx += 3.6 + doc.getTextWidth(t.label) + 6;
           });
           y += 6;
-          if (agg(ev).kinds.vomito) text('En tono claro: lo comido en la hora anterior a un vómito sin estimar. Arriba, en color de vómito: kcal estimadas perdidas. Triángulo: días con vómitos.', 7.5, PC.mid);
+          if (agg(es).kinds.vomito) text('En tono claro: lo comido en la hora anterior a un vómito sin estimar. Arriba, en color de vómito: kcal estimadas perdidas. Triángulo: días con vómitos.', 7.5, PC.mid);
           if (kcalLimit()){
             h2('Límite diario: ' + kcalLimit() + ' kcal', 'solo días con comida registrada');
-            var perK = {}; R.keys.forEach(function(k){ perK[k] = 1; });
-            var cp = compliance(Object.keys(perK));
+            var cp = compliance(sk);
             text('En este periodo: ' + complianceLine(cp) + '.', 8.8, cp.over ? PC.warn : PC.ink);
             compliancePeriods().forEach(function(p){ if (p.c.n) text(p.label + ': ' + complianceLine(p.c) + '.', 8.3, p.c.over ? PC.warn : PC.mid); });
             y += 2;
           }
         }
         h2('Gramos al día'); bars(dailyRows(tr, barKeys), tr, 26, { dates:true, unit:'g' });
-        var a = agg(ev);
+        var a = agg(es);
         Object.keys(a.units).filter(function(u){ return u !== 'g'; }).forEach(function(u){ h2(cap(u) + ' al día'); bars(unitRows(barKeys, u), tr, 20, { dates:true, unit:u }); });
         if (a.durMs){ h2('Comedero vacío por día', 'minutos'); bars(durRows(barKeys), tr, 20, { dates:true, unit:'min' }); }
       } else {
@@ -3829,17 +4152,17 @@ function paintPdf(JsPDF, o, R, set, trs, shots, imgs){
         bars(dailyRows(tr, barKeys), tr, 26, { dates:true });
         if (tr === 'asma' || tr === 'arenero') medStrip(barKeys);
       }
-      var hs = hourSpread(ev);
+      var hs = hourSpread(es);
       if (hs.rows.some(function(r){ return r.segs[0].v || r.segs[1].v; })){
         h2('A qué horas', hs.nAp ? 'en claro, lo repartido de las franjas' : null);
         bars(hs.rows, tr, 18, { every:3 });
       }
     }
-    if (o.tags){
-      var g = tagRows(tr, ev);
+    if (o.tags && canSum){
+      var g = tagRows(tr, es);
       Object.keys(g).forEach(function(u){ h2(u ? 'Cantidades totales (' + u + ')' : 'Por etiqueta'); hbarList(g[u]); });
       if (tr === 'dieta'){
-        var akp = agg(ev), kf2 = foodsWithKcal(ev);
+        var akp = agg(es), kf2 = foodsWithKcal(es);
         if (kf2.length){
           h2('De dónde salen las calorías', fmtKcal(akp.kcal) + ' en total');
           hbarList(kf2.map(function(t){ var v = akp.kcalBy[t.id]; return { label:t.label, n:v, disp:fmtKcal(v) + ' · ' + Math.round(v * 100 / akp.kcal) + '%', rgb:hexRgb(foodPal(t.id)[0]) }; })
@@ -3848,9 +4171,9 @@ function paintPdf(JsPDF, o, R, set, trs, shots, imgs){
       }
       if (tr === 'arenero'){
         var bp = {};
-        ev.forEach(function(e){ var k = e.place || '_'; bp[k] = (bp[k] || 0) + 1; });
+        es.forEach(function(e){ var k = e.place || '_'; bp[k] = (bp[k] || 0) + 1; });
         var pl = activePlaces().map(function(p){ return { label:p.label, n:bp[p.id] || 0, rgb:PC.brand }; }).filter(function(r){ return r.n; });
-        pl.forEach(function(r){ r.disp = r.n + ' · ' + Math.round(r.n*100/ev.length) + '%'; });
+        pl.forEach(function(r){ r.disp = r.n + ' · ' + Math.round(r.n*100/es.length) + '%'; });
         if (pl.length){ h2('Qué arenero usa'); hbarList(pl.sort(function(a,b){ return b.n - a.n; })); }
       }
     }
@@ -3976,7 +4299,7 @@ $('#vidCamInput').addEventListener('change', onPick($('#vidCamInput')));
 function bootApp(){
   return loadMeta().then(function(){ return idbGet('kv','config'); }).then(function(cfg){
     var c = cfg ? migrateConfig(cfg) : Object.assign(normConfig({ tags:defaultTags(), places:defaultPlaces() }), { _changed:true });
-    var changed = c._changed; S._conv = c._convert || null; delete c._changed; delete c._convert; c.v = 7;
+    var changed = c._changed; S._conv = c._convert || null; delete c._changed; delete c._convert; c.v = 8;
     return idbPut('kv', c, 'config').then(function(){ applyConfig(c); return changed && cfg ? enqueue({ t:'config', id:'config' }) : null; });
   }).then(function(){ return idbAll('entries'); }).then(function(list){
     var norm = list.map(normEntry), fix = [], conv = S._conv, convIds = [];
@@ -3992,8 +4315,8 @@ function bootApp(){
   }).then(function(){
     S.mode = 'ready'; S.loadedConfig = true; S.loadedDays = true; S.logSig = '';
     render();
-    return refreshPending();
-  }).then(function(){
+    return runSchedules();
+  }).then(refreshPending).then(function(){
     if (!META.endpoint){ if (!lsGet('setupSeen', false)) openConnSheet(true); return runRetention(); }
     return syncNow(true).then(runRetention);
   }).catch(function(){
@@ -4007,7 +4330,8 @@ bootApp();
 
 window.addEventListener('online', function(){ paintSync(); syncNow(false); });
 window.addEventListener('offline', paintSync);
-document.addEventListener('visibilitychange', function(){ if (!document.hidden){ paintSync(); syncNow(false); if (S.tab === 'hoy') renderHoy(); } });
+document.addEventListener('visibilitychange', function(){ if (!document.hidden){ paintSync(); runSchedules(); syncNow(false); if (S.tab === 'hoy') renderHoy(); } });
+setInterval(function(){ runSchedules(); }, 60000);   // con la app abierta, la periódica entra a su hora
 $('#syncPill').onclick = function(){ if (!META.endpoint) openConnSheet(false); else syncNow(true); };
 if (typeof navigator !== 'undefined' && navigator.serviceWorker){
   window.addEventListener('load', function(){ navigator.serviceWorker.register('./sw.js').catch(function(){}); });
