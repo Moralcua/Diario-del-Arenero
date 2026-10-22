@@ -39,6 +39,12 @@
   --try-line:#DFA4B2;
   --warn:#A83E26;
   --warn-bg:#F7E2DC;
+  /* colores de la casilla de respiraciones (fondo / borde) */
+  --rb-g:#DDF2E0; --rl-g:#3E9B4F;
+  --rb-y:#FBF0C4; --rl-y:#C9A00E;
+  --rb-o:#FCE1C6; --rl-o:#DB7416;
+  --rb-r1:#F9DAD6; --rl-r1:#D2564B;
+  --rb-r2:#D93A2E; --rl-r2:#9E1F16; --rt-r2:#FFFFFF;
   --shadow:0 1px 2px rgba(20,35,31,.07), 0 6px 18px -10px rgba(20,35,31,.25);
   --r:14px;
   --nav-h:66px;
@@ -69,6 +75,11 @@
     --try-line:#7A3346;
     --warn:#E5775E;
     --warn-bg:#3A1C15;
+  --rb-g:#173A22; --rl-g:#5CC474;
+  --rb-y:#3A3110; --rl-y:#E6C341;
+  --rb-o:#40270F; --rl-o:#F29A4A;
+  --rb-r1:#401D1A; --rl-r1:#E57E74;
+  --rb-r2:#B3261E; --rl-r2:#FF7A6E; --rt-r2:#FFFFFF;
     --shadow:0 1px 2px rgba(0,0,0,.4), 0 8px 20px -12px rgba(0,0,0,.7);
   }
 }
@@ -97,6 +108,11 @@
   --try-line:#7A3346;
   --warn:#E5775E;
   --warn-bg:#3A1C15;
+  --rb-g:#173A22; --rl-g:#5CC474;
+  --rb-y:#3A3110; --rl-y:#E6C341;
+  --rb-o:#40270F; --rl-o:#F29A4A;
+  --rb-r1:#401D1A; --rl-r1:#E57E74;
+  --rb-r2:#B3261E; --rl-r2:#FF7A6E; --rt-r2:#FFFFFF;
   --shadow:0 1px 2px rgba(0,0,0,.4), 0 8px 20px -12px rgba(0,0,0,.7);
 }
 *,*::before,*::after{box-sizing:border-box}
@@ -470,6 +486,24 @@ nav.tabs button{font-size:.68rem}
 .srow input[type="time"]{padding:6px 8px;border-radius:8px;border:1px solid var(--line);background:var(--surface-2);font-variant-numeric:tabular-nums}
 .srow .son{padding:9px 10px;border-radius:9px;border:1px solid var(--line);font-size:.8rem;font-weight:600;flex:none}
 .srow.off .sb{opacity:.6}
+
+/* asma: respiración durmiendo */
+.breath .rpm{display:flex;align-items:center;justify-content:space-between;gap:12px;padding:10px 12px;border-radius:12px;background:var(--surface);border:1px solid var(--line);margin-bottom:8px;font-size:.9rem;font-weight:600;cursor:text}
+.breath .rpm input{width:88px;text-align:center;font-size:1.35rem;font-weight:800;padding:8px;border-radius:10px;border:2px solid var(--line);background:var(--surface-2);font-family:'Bricolage Grotesque',sans-serif;font-variant-numeric:tabular-nums;transition:background .15s,border-color .15s}
+.rpm input[data-band="g"]{background:var(--rb-g);border-color:var(--rl-g)}
+.rpm input[data-band="y"]{background:var(--rb-y);border-color:var(--rl-y)}
+.rpm input[data-band="o"]{background:var(--rb-o);border-color:var(--rl-o)}
+.rpm input[data-band="r1"]{background:var(--rb-r1);border-color:var(--rl-r1)}
+.rpm input[data-band="r2"]{background:var(--rb-r2);border-color:var(--rl-r2);color:var(--rt-r2)}
+.signs{display:flex;flex-direction:column;gap:6px}
+.sign{display:grid;grid-template-columns:1fr auto;align-items:center;padding:2px 2px 2px 12px;border-radius:11px;background:var(--surface);border:1px solid var(--line)}
+.sign.on{background:color-mix(in srgb,var(--brand) 8%,var(--surface));border-color:color-mix(in srgb,var(--brand) 50%,var(--line))}
+.scheck{display:flex;align-items:center;gap:11px;padding:9px 0;font-size:.89rem;cursor:pointer;min-width:0}
+.scheck input{width:20px;height:20px;accent-color:var(--brand);flex:none;margin:0}
+.sinfo{width:40px;height:40px;display:grid;place-items:center;color:var(--ink-3);border-radius:9px}
+.sinfo svg{width:14px;height:14px;transition:transform .15s}
+.sinfo[aria-expanded="true"] svg{transform:rotate(180deg)}
+.sdesc{grid-column:1/-1;margin:-2px 10px 10px 31px;font-size:.8rem;color:var(--ink-2)}
 </style>
 </head>
 <body>
@@ -571,7 +605,7 @@ function lsSet(k, v){ try { localStorage.setItem(k, JSON.stringify(v)); } catch(
 var TRACKERS = [
   { id:'arenero',    label:'Arenero',    c:['#0F6E62','#3EBCA2'], kinds:['orina','intento','caca','otro'],     save:'Guardar visita',   unit:'visita' },
   { id:'dieta',      label:'Dieta',      c:['#4F7A1F','#9CCB5E'], kinds:['comida','vomito','peso','duracion','otro'],   save:'Guardar',          unit:'registro' },
-  { id:'asma',       label:'Asma',       c:['#1F6FA3','#6BB6E6'], kinds:['tos','jadeo','sonido','otro'],       save:'Guardar episodio', unit:'episodio' },
+  { id:'asma',       label:'Asma',       c:['#1F6FA3','#6BB6E6'], kinds:['tos','jadeo','resp','signo','otro'], save:'Guardar',          unit:'episodio' },
   { id:'medicacion', label:'Medicación', c:['#6B3FA0','#B79BE0'], kinds:['medicamento','suplemento','otro'],   save:'Guardar toma',     unit:'toma' }
 ];
 var KINDS = {
@@ -584,7 +618,9 @@ var KINDS = {
   duracion:    { label:'Duración',    group:'Comedero',               c:['#5E6470','#A7AEBB'], g:'bowlEmpty', duration:true },
   tos:         { label:'Tos',         group:'Tos',                    c:['#B4531F','#F29A66'], g:'cough' },
   jadeo:       { label:'Jadeo',       group:'Jadeo',                  c:['#1F6FA3','#6BB6E6'], g:'pant' },
-  sonido:      { label:'Sonido',      group:'Sonidos al respirar',    c:['#7A3E8C','#C79BD6'], g:'sound' },
+  sonido:      { label:'Sonido',      group:'Sonidos al respirar',    c:['#7A3E8C','#C79BD6'], g:'sound' },   // ya no se usa (v9 lo pasa a «signo»)
+  resp:        { label:'Respiraciones', group:'Respiración durmiendo', c:['#2E7FA0','#79C0E0'], g:'sound', measure:true, breath:true },
+  signo:       { label:'Signo',       group:'Respiración durmiendo',  c:['#7A3E8C','#C79BD6'], g:'sound', breath:true },
   medicamento: { label:'Medicamento', group:'Medicamentos',           c:['#2E4FA8','#8FA8F0'], g:'pill' },
   suplemento:  { label:'Suplemento',  group:'Suplementos',            c:['#1F8A70','#6FD1B4'], g:'dropper' },
   otro:        { label:'Otro',        group:'Otros',                  c:['#4A6B8A','#7FAFD4'], g:'dot' }
@@ -628,16 +664,28 @@ function defaultTags(){
     { id:'a_t2',  tracker:'asma', label:'Tos <45 s',          kind:'tos',    w:2 },
     { id:'a_t3',  tracker:'asma', label:'Tos <120 s',         kind:'tos',    w:3 },
     { id:'a_j1',  tracker:'asma', label:'Jadeo <15 s',        kind:'jadeo',  w:1 },
-    { id:'a_j2',  tracker:'asma', label:'Jadeo <120 s',       kind:'jadeo',  w:3 },
-    { id:'a_rs',  tracker:'asma', label:'Respiración sonora', kind:'sonido', w:2 },
-    { id:'a_ro',  tracker:'asma', label:'Ronquido',           kind:'sonido', w:1 },
-    { id:'a_pi',  tracker:'asma', label:'Pitos',              kind:'sonido', w:1 },
+    { id:'a_j2',  tracker:'asma', label:'Jadeo <120 s',       kind:'jadeo',  w:3 }
+  ].concat(breathTags(), [
 
     { id:'m_p4',  tracker:'medicacion', label:'Predicortone ¼',       kind:'medicamento', w:1 },
     { id:'m_p2',  tracker:'medicacion', label:'Predicortone ½',       kind:'medicamento', w:2 },
     { id:'m_h20', tracker:'medicacion', label:'Hyalorar plasma <1/20', kind:'suplemento', w:1 },
     { id:'m_h4m', tracker:'medicacion', label:'Hyalorar plasma <¼',    kind:'suplemento', w:1 },
     { id:'m_h4',  tracker:'medicacion', label:'Hyalorar plasma ¼',     kind:'suplemento', w:2 }
+  ]);
+}
+/** Asma → «Respiración durmiendo»: respiraciones en 60 s y signos que se marcan (con su descripción). */
+function breathTags(){
+  return [
+    { id:'a_rpm', tracker:'asma', label:'Respiraciones durmiendo', kind:'resp', w:2, unit:'por min' },
+    { id:'a_pi',  tracker:'asma', label:'Silbidos / pitidos', kind:'signo', w:1, desc:'Sonido agudo al respirar, parecido a un silbido.' },
+    { id:'a_gb',  tracker:'asma', label:'Gorgoteos / burbujeos', kind:'signo', w:1, desc:'Sonido húmedo, como burbujas o líquido al respirar.' },
+    { id:'a_ro',  tracker:'asma', label:'Ronquidos', kind:'signo', w:1, desc:'Sonido grave o vibrante mientras duerme.' },
+    { id:'a_ri',  tracker:'asma', label:'Respiraciones profundas irregulares', kind:'signo', w:1, desc:'Alterna respiraciones normales con otras claramente más profundas, sin un patrón uniforme.' },
+    { id:'a_bo',  tracker:'asma', label:'Boca abierta', kind:'signo', w:1, urgent:true, desc:'Respira con la boca abierta mientras está dormido o tranquilo.' },
+    { id:'a_cu',  tracker:'asma', label:'Cuello estirado', kind:'signo', w:1, desc:'Mantiene el cuello y la cabeza extendidos mientras respira.' },
+    { id:'a_ds',  tracker:'asma', label:'Dormir sentado', kind:'signo', w:1, desc:'Permanece sentado, con el pecho apoyado y sin tumbarse como suele hacer.' },
+    { id:'a_en',  tracker:'asma', label:'Encías / lengua pálidas, grises o azuladas', kind:'signo', w:1, urgent:true, desc:'El color parece claramente distinto del rosa habitual.' }
   ];
 }
 function defaultPlaces(){
@@ -939,6 +987,57 @@ function weightsOf(list){
 }
 function lastWeight(){ var w = weightsOf(); return w.length ? w[w.length - 1] : null; }
 
+/* ============ respiración durmiendo (asma) ============ */
+/** Respiraciones en 60 s de una lista de registros: [{ t, v, e }], de más antigua a más reciente. */
+function respOf(list){
+  var out = [];
+  (list || entriesOf('asma')).forEach(function(e){
+    Object.keys(e.tags || {}).forEach(function(id){
+      var t = tagById(id);
+      if (t && t.kind === 'resp' && Number(e.tags[id]) > 0) out.push({ t:entryStart(e), v:Number(e.tags[id]), e:e });
+    });
+  });
+  return out.sort(function(a, b){ return a.t - b.t; });
+}
+/** Color de la casilla según la cifra, con los tramos que dio la persona. */
+function rpmBand(n){
+  if (!(n > 0)) return '';
+  if (n < 5) return 'r2';
+  if (n < 10) return 'r1';
+  if (n < 15) return 'y';
+  if (n <= 30) return 'g';
+  if (n <= 35) return 'y';
+  if (n <= 40) return 'o';
+  if (n < 60) return 'r1';
+  return 'r2';
+}
+/** Un episodio de asma es un registro con algo que no sea de «Respiración durmiendo» (tos, jadeo, otro). */
+function isEpisode(e){
+  return Object.keys(e.tags || {}).some(function(id){ var t = tagById(id); return !t || !kindOf(t.kind).breath; });
+}
+/** Lo que cuenta como «uno» al día: en Asma, solo los episodios. */
+function dayCount(tr, list){ return tr === 'asma' ? (list || []).filter(isEpisode).length : (list || []).length; }
+/** Signos que requieren ir al veterinario ya, marcados en las últimas 24 h. */
+var URGENT_TXT = {
+  a_en: 'En un gato, ese color suele ser una urgencia veterinaria.',
+  a_bo: 'Que un gato respire con la boca abierta estando dormido o tranquilo suele ser una urgencia veterinaria.'
+};
+function urgentNote(t){ return (URGENT_TXT[t.id] || 'Suele considerarse una urgencia veterinaria.') + ' Llama ahora a tu veterinario o a urgencias.'; }
+function urgentAlarms(list){
+  var since = Date.now() - 24*3600000, last = {};
+  list.forEach(function(e){
+    if (entryEnd(e) < since) return;
+    Object.keys(e.tags || {}).forEach(function(id){
+      var t = tagById(id);
+      if (t && t.urgent && (!last[id] || entryEnd(e) > entryEnd(last[id]))) last[id] = e;
+    });
+  });
+  return Object.keys(last).map(function(id){
+    var t = tagById(id);
+    return { t:'Asma, ' + agoOf(last[id]) + ': «' + t.label + '». ' + urgentNote(t), warn:true, alarm:true };
+  });
+}
+
 /* ============ cuenta de Google donde están los datos ============ */
 /** Añade la cuenta a un enlace de Google para que se abra con ella aunque Chrome tenga otra predeterminada. */
 function withAccount(url){
@@ -983,7 +1082,7 @@ function curDraft(){
 
 /* ============ agregados ============ */
 function agg(list){
-  var o = { n:0, kinds:{}, kindEv:{}, units:{}, tags:{}, durMs:0, durMax:0, weights:[], kcal:0, kcalBy:{}, kcalMissing:{}, kcalRisk:0, kcalLost:0 };
+  var o = { n:0, kinds:{}, kindEv:{}, units:{}, tags:{}, durMs:0, durMax:0, weights:[], resp:[], kcal:0, kcalBy:{}, kcalMissing:{}, kcalRisk:0, kcalLost:0 };
   var VB = (list && list.length && list[0] && list[0].id) ? vomitLinks().byMealOpen : {};
   (list || []).forEach(function(e){
     o.n++;
@@ -991,7 +1090,7 @@ function agg(list){
     Object.keys(e.tags || {}).forEach(function(id){
       var t = tagById(id), v = Number(e.tags[id]) || 1;
       var k = t ? (t.kind || 'otro') : 'otro';
-      if (isMeasure(t)){ o.weights.push({ t:entryStart(e), v:v }); if (!seen[k]){ o.kindEv[k] = (o.kindEv[k] || 0) + 1; seen[k] = 1; } return; }
+      if (isMeasure(t)){ (t.kind === 'resp' ? o.resp : o.weights).push({ t:entryStart(e), v:v }); if (!seen[k]){ o.kindEv[k] = (o.kindEv[k] || 0) + 1; seen[k] = 1; } return; }
       o.tags[id] = (o.tags[id] || 0) + v;
       if (t && t.kind === 'comida'){
         var kc = kcalOf(t, v);
@@ -1410,7 +1509,30 @@ function migrateConfig(c){
     // v8: días fuera de los resúmenes y entradas periódicas (normApp ya los deja vacíos si no había)
     changed = true;
   }
-  cfg.v = 8;
+  if (ver < 9){
+    // v9: Asma deja «Sonidos al respirar» y pasa a «Respiración durmiendo». Pitos y Ronquido siguen
+    // (mismo id, así sus registros antiguos pasan con ellos) como Silbidos / pitidos y Ronquidos;
+    // Respiración sonora queda archivada: no sale al registrar, pero sus registros se siguen viendo.
+    // Solo toca las que siguen siendo «sonido», así que repetirla no deshace nada.
+    var BT = {}; breathTags().forEach(function(t){ BT[t.id] = t; });
+    cfg.tags.forEach(function(t){
+      if (t.tracker !== 'asma' || t.kind !== 'sonido') return;
+      t.kind = 'signo';
+      if (BT[t.id]){ t.label = BT[t.id].label; t.desc = BT[t.id].desc; }
+      else if (t.id === 'a_rs') t.archived = true;
+    });
+    // las de «Respiración durmiendo» quedan juntas y en su orden, detrás de la tos y el jadeo
+    var mine = {}, rest = [];
+    cfg.tags.forEach(function(t){ if (BT[t.id] && (t.tracker || 'arenero') === 'asma') mine[t.id] = t; else rest.push(t); });
+    var at9 = -1;
+    rest.forEach(function(t, i){ if (t.tracker === 'asma' && !t.archived) at9 = i; });
+    if (at9 < 0) at9 = rest.length - 1;
+    var block = breathTags().map(function(t){ return mine[t.id] || t; });
+    cfg.tags = rest.slice(0, at9 + 1).concat(block, rest.slice(at9 + 1));
+    block.forEach(function(t){ have[t.id] = 1; });
+    changed = true;
+  }
+  cfg.v = 9;
   cfg._changed = changed;
   return cfg;
 }
@@ -1421,7 +1543,7 @@ function applyConfig(cfg){
 }
 function saveCfg(){
   S.lastCfgWrite = Date.now();
-  var cfg = { v:8, tags:S.tags, places:S.places, app:S.app };
+  var cfg = { v:9, tags:S.tags, places:S.places, app:S.app };
   return idbPut('kv', cfg, 'config').then(function(){ return enqueue({ t:'config', id:'config' }); });
 }
 function saveTags(){ return saveCfg(); }
@@ -2120,8 +2242,8 @@ function applyTheme(t){
 
 
 /* ============ enrutado ============ */
-var SAVED = { arenero:'Visita guardada', dieta:'Guardado', asma:'Episodio guardado', medicacion:'Toma guardada' };
-var LASTW = { arenero:'Última visita', dieta:'Último registro', asma:'Último episodio', medicacion:'Última toma' };
+var SAVED = { arenero:'Visita guardada', dieta:'Guardado', asma:'Guardado', medicacion:'Toma guardada' };
+var LASTW = { arenero:'Última visita', dieta:'Último registro', asma:'Último registro', medicacion:'Última toma' };
 
 function statusBanner(){
   if (S.mode === 'error') return '<div class="banner">'+ICON.alert+'<div><b>No se pudo abrir el almacenamiento del navegador.</b> Recarga la página; si persiste, libera espacio en el móvil.</div></div>';
@@ -2183,8 +2305,12 @@ function foodSub(t){
          (k ? '<span class="sublbl">' + esc(fmtKcal(k)) + '</span>' : '');
 }
 function chipsHTML(tr){
-  var tags = tagsOf(tr), kinds = trackerById(tr).kinds, h = '';
+  var tags = tagsOf(tr), kinds = trackerById(tr).kinds, h = '', breath = false;
   kinds.forEach(function(k){
+    if (kindOf(k).breath){
+      if (!breath){ breath = true; h += breathHTML(tags.filter(function(t){ return kindOf(t.kind).breath; })); }
+      return;
+    }
     var list = tags.filter(function(t){ return (t.kind || 'otro') === k; });
     if (!list.length) return;
     h += '<div class="group"><div class="group-label"><b>'+esc(kindOf(k).group)+'</b>' +
@@ -2195,7 +2321,63 @@ function chipsHTML(tr){
   if (stray.length) h += '<div class="group"><div class="group-label"><b>Otros</b></div><div class="chips">'+stray.map(chipHTML).join('')+'</div></div>';
   return h;
 }
+/** Asma → «Respiración durmiendo»: casilla de respiraciones en 60 s y signos con su descripción desplegable. */
+function breathHTML(list){
+  if (!list.length) return '';
+  var resp = list.filter(function(t){ return t.kind === 'resp'; }), signs = list.filter(function(t){ return t.kind === 'signo'; });
+  var h = '<div class="group breath"><div class="group-label"><b>Respiración durmiendo</b><span>cuenta las inhalaciones durante 60 s</span></div>';
+  resp.forEach(function(t){
+    h += '<label class="rpm"><span>' + (resp.length > 1 ? esc(t.label) : 'Respiraciones en 60 s') + '</span>' +
+      '<input type="text" inputmode="numeric" maxlength="3" autocomplete="off" data-rpm="' + esc(t.id) + '" placeholder="—" aria-label="Respiraciones en 60 segundos"></label>';
+  });
+  if (signs.length) h += '<div class="signs">' + signs.map(function(t){
+    return '<div class="sign"><label class="scheck"><input type="checkbox" data-sg="' + esc(t.id) + '"><span>' + esc(t.label) + '</span></label>' +
+      (t.desc ? '<button type="button" class="sinfo" data-sx aria-expanded="false" aria-label="Ver la descripción">' + ICON.down + '</button><p class="sdesc" hidden>' + esc(t.desc) + '</p>' : '') + '</div>';
+  }).join('') + '</div>';
+  return h + '</div>';
+}
+function showDesc(sign, on){
+  var p = sign.querySelector('.sdesc'), b = sign.querySelector('[data-sx]');
+  if (!p) return;
+  p.hidden = !on; b.setAttribute('aria-expanded', on ? 'true' : 'false');
+}
+function paintBreath(root, d){
+  root.querySelectorAll('[data-rpm]').forEach(function(inp){
+    var v = d.tags[inp.dataset.rpm];
+    if (document.activeElement !== inp) inp.value = v > 0 ? String(v) : '';
+    inp.setAttribute('data-band', rpmBand(v));
+  });
+  root.querySelectorAll('[data-sg]').forEach(function(c){
+    c.checked = !!d.tags[c.dataset.sg];
+    c.closest('.sign').classList.toggle('on', c.checked);
+  });
+}
+function bindBreath(root, d, after){
+  root.querySelectorAll('[data-rpm]').forEach(function(inp){
+    inp.addEventListener('input', function(){
+      var raw = inp.value.replace(/[^0-9]/g, '');
+      if (raw !== inp.value) inp.value = raw;
+      var n = parseInt(raw, 10);
+      if (n >= 1 && n <= 200) d.tags[inp.dataset.rpm] = n; else delete d.tags[inp.dataset.rpm];
+      inp.setAttribute('data-band', rpmBand(d.tags[inp.dataset.rpm]));
+      after();
+    });
+  });
+  root.querySelectorAll('[data-sg]').forEach(function(c){
+    c.addEventListener('change', function(){
+      if (c.checked) d.tags[c.dataset.sg] = 1; else delete d.tags[c.dataset.sg];
+      var sign = c.closest('.sign');
+      sign.classList.toggle('on', c.checked);
+      showDesc(sign, c.checked);   // al marcarla se ve qué significa
+      after();
+    });
+  });
+  root.querySelectorAll('[data-sx]').forEach(function(b){
+    b.onclick = function(){ var sign = b.closest('.sign'); showDesc(sign, sign.querySelector('.sdesc').hidden); };
+  });
+}
 function paintChips(root, d){
+  paintBreath(root, d);
   root.querySelectorAll('.chip[data-tag]').forEach(function(c){
     var id = c.dataset.tag, t = tagById(id), v = d.tags[id], on = v != null && v > 0;
     c.setAttribute('aria-pressed', on ? 'true' : 'false');
@@ -2204,6 +2386,7 @@ function paintChips(root, d){
   });
 }
 function bindChips(root, d, after){
+  bindBreath(root, d, after);
   root.querySelectorAll('.chip[data-tag]').forEach(function(c){
     c.onclick = function(ev){
       var id = c.dataset.tag, t = tagById(id), cur = d.tags[id];
@@ -2380,7 +2563,13 @@ function summaryLine(tr, list){
     if (a.kinds.tos) parts.push(plural(a.kinds.tos, 'tos', 'toses'));
     if (a.kinds.jadeo) parts.push(plural(a.kinds.jadeo, 'jadeo', 'jadeos'));
     if (a.kinds.sonido) parts.push(plural(a.kinds.sonido, 'sonido', 'sonidos'));
+    if (a.resp.length){
+      var rv = a.resp.map(function(r){ return r.v; }), r0 = Math.min.apply(null, rv), r1 = Math.max.apply(null, rv);
+      parts.push('durmiendo ' + (r0 === r1 ? r0 : r0 + '–' + r1) + ' resp/min');
+    }
+    if (a.kinds.signo) parts.push(plural(a.kinds.signo, 'signo', 'signos'));
     if (a.kinds.otro) parts.push(plural(a.kinds.otro, 'otro', 'otros'));
+    if (!parts.length) parts.push(plural(a.n, 'registro', 'registros'));
   } else {
     if (!a.n) return 'Sin tomas';
     Object.keys(a.tags).forEach(function(id){ var t = tagById(id); parts.push((t ? t.label : 'borrada') + (a.tags[id] > 1 ? ' ×' + a.tags[id] : '')); });
@@ -2394,7 +2583,7 @@ function spark(tr){
   var vals = keys.map(function(k){
     var l = dm.get(k) || [];
     if (tr === 'dieta'){ var a = agg(l); return a.units.g || l.length; }
-    return l.length;
+    return dayCount(tr, l);
   });
   var max = Math.max.apply(null, vals.concat([1])), W = 280, H = 26, gap = 3, bw = (W - gap*13) / 14;
   var s = '<svg class="spark" viewBox="0 0 '+W+' '+H+'" preserveAspectRatio="none" aria-hidden="true">';
@@ -2628,6 +2817,8 @@ function saveDraft(){
       var msg = SAVED[d.tracker];
       if (ds && ds.st === 'over') msg += ' · ' + (e.fecha === dayKey(new Date()) ? 'hoy' : 'ese día') + ' ' + Math.round(ds.kcal) + ' kcal, ' + Math.round(ds.diff) + ' por encima del límite';
       if (sched) msg += ' · se repetirá cada día a las ' + sched.hora;
+      var urg = Object.keys(e.tags).map(tagById).filter(function(t){ return t && t.urgent; });
+      if (urg.length) msg += '. «' + urg.map(function(t){ return t.label; }).join('» y «') + '»: ' + (urg.length === 1 ? urgentNote(urg[0]) : 'suelen ser una urgencia veterinaria. Llama ahora a tu veterinario o a urgencias.');
       toast(msg, 'Deshacer', function(){
         if (!sched){ removeEntry(e.id); toast('Registro eliminado'); return; }
         // deshace también la entrada periódica y lo que haya añadido ya
@@ -3141,6 +3332,7 @@ function obsFor(tr){
   if (!list.length) return out;
   var now = Date.now(), dm = daysOf(tr), today = dayKey(new Date());
   if (tr === 'arenero') out = out.concat(urinaryAlarm(list));
+  if (tr === 'asma') out = out.concat(urgentAlarms(list));
   out.push({ t: LASTW[tr] + ' ' + agoOf(latest(list)) + '.' });
 
   if (tr === 'arenero'){
@@ -3218,9 +3410,11 @@ function obsFor(tr){
   if (tr === 'asma'){
     var first = list[0].fecha, win = statKeys('asma', pastKeys(14)).filter(function(k){ return k >= first; });
     if (win.length >= 3){
-      var free = win.filter(function(k){ return !(dm.get(k) || []).length; }).length;
+      var free = win.filter(function(k){ return !dayCount('asma', dm.get(k)); }).length;
       out.push({ t:'En los últimos ' + win.length + ' días completos, ' + free + ' sin ningún episodio.' });
     }
+    var rs = respOf(list);
+    if (rs.length){ var lr = rs[rs.length - 1]; out.push({ t:'Última medición durmiendo: ' + lr.v + ' respiraciones por minuto, ' + agoText(now - lr.t) + '.' }); }
   }
   if (tr === 'medicacion'){
     var MLx = medLinks();
@@ -3239,8 +3433,8 @@ function obsFor(tr){
   if (tr !== 'medicacion' && tr !== 'dieta'){
     var fk = list[0].fecha, prev = statKeys(tr, pastKeys(14)).filter(function(k){ return k >= fk; });
     if (prev.length >= 5){
-      var sum = 0; prev.forEach(function(k){ sum += (dm.get(k) || []).length; });
-      var avg = sum / prev.length, tN = (dm.get(today) || []).length;
+      var sum = 0; prev.forEach(function(k){ sum += dayCount(tr, dm.get(k)); });
+      var avg = sum / prev.length, tN = dayCount(tr, dm.get(today));
       var minN = tr === 'asma' ? 3 : 5;
       var w = avg > 0 && tN >= Math.ceil(avg * 2.2) && tN >= minN;
       var U = trackerById(tr).unit;
@@ -3281,7 +3475,7 @@ function dailyRows(tr, keys){
   if (tr === 'dieta'){
     return keys.map(function(k){ var a = agg(dm.get(k) || []); return { k:k, segs:[{ v:a.units.g || 0, kind:'comida' }] }; });
   }
-  var kinds = trackerById(tr).kinds;
+  var kinds = trackerById(tr).kinds.filter(function(k){ return !kindOf(k).breath; });
   if (tr === 'medicacion'){
     var BM = medLinks().byMed;
     return keys.map(function(k){
@@ -3351,7 +3545,7 @@ function durByHour(ev, span){
 }
 function weekdayRows(tr, keys){
   var dm = daysOf(tr), sum = [0,0,0,0,0,0,0], cnt = [0,0,0,0,0,0,0];
-  keys.forEach(function(k){ var p = k.split('-'), w = new Date(+p[0], +p[1]-1, +p[2]).getDay(); sum[w] += (dm.get(k) || []).length; cnt[w]++; });
+  keys.forEach(function(k){ var p = k.split('-'), w = new Date(+p[0], +p[1]-1, +p[2]).getDay(); sum[w] += dayCount(tr, dm.get(k)); cnt[w]++; });
   return [1,2,3,4,5,6,0].map(function(w){ return { k:DOW_S[w], segs:[{ v: cnt[w] ? Math.round(sum[w] / cnt[w] * 10) / 10 : 0, kind:'_t' }] }; });
 }
 function medRows(keys){
@@ -3362,10 +3556,17 @@ function medRows(keys){
     return { med:a.kinds.medicamento || 0, sup:a.kinds.suplemento || 0, medOk:f.kinds.medicamento || 0, supOk:f.kinds.suplemento || 0 };
   });
 }
+/** Signos de «Respiración durmiendo» marcados en el periodo (también los archivados, como «Respiración sonora»). */
+function signRows(ev){
+  var a = agg(ev);
+  return S.tags.filter(function(t){ return t.tracker === 'asma' && t.kind === 'signo' && a.tags[t.id]; })
+    .map(function(t){ return { label:t.label, n:a.tags[t.id], disp:String(a.tags[t.id]), kind:'signo' }; })
+    .sort(function(x, y){ return y.n - x.n; });
+}
 function tagRows(tr, ev){
   var a = agg(ev), groups = {};
   tagsOf(tr).forEach(function(t){
-    var v = a.tags[t.id]; if (!v) return;
+    var v = a.tags[t.id]; if (!v || kindOf(t.kind).breath) return;   // los signos tienen su propio cuadro
     var u = t.unit || '';
     (groups[u] = groups[u] || []).push({ label:t.label, n:v, disp: u ? fmtAmt(v, u) : String(v), kind:t.kind });
   });
@@ -3484,9 +3685,16 @@ function kpisFor(tr, ev, span, wts){
     out.push({ v:pf(a.kindEv.comida || 0), k:'comidas por día registrado' });
     if (a.durMs) out.push({ v:fmtDur(a.durMs / span), k:'comedero vacío al día', c:kcolor('duracion') });
   } else if (tr === 'asma'){
-    out.push({ v:a.n, k:'episodios' }, { v:pd(a.n), k:'episodios al día' },
+    var ne = ev.filter(isEpisode).length;
+    out.push({ v:ne, k:'episodios' }, { v:pd(ne), k:'episodios al día' },
              { v:pd(a.kinds.tos || 0), k:'toses al día', c:kcolor('tos') }, { v:pd(a.kinds.jadeo || 0), k:'jadeos al día', c:kcolor('jadeo') });
     if (a.kinds.sonido) out.push({ v:pd(a.kinds.sonido), k:'sonidos al día', c:kcolor('sonido') });
+    if (a.resp.length){
+      var rsum = 0, rv = a.resp.map(function(r){ rsum += r.v; return r.v; });
+      out.push({ v:String(Math.round(rsum / rv.length)), k:'respiraciones por minuto durmiendo (media de ' + plural(rv.length, 'medición', 'mediciones') + ')', c:kcolor('resp') });
+      out.push({ v:Math.min.apply(null, rv) + '–' + Math.max.apply(null, rv), k:'mínimo y máximo durmiendo', c:kcolor('resp') });
+    }
+    if (a.kinds.signo) out.push({ v:a.kinds.signo, k:'signos marcados durmiendo', c:kcolor('signo') });
   } else {
     var days = {}; ev.forEach(function(e){ days[e.fecha] = 1; });
     out.push({ v:a.n, k:'tomas' }, { v:pd(a.n), k:'tomas al día' },
@@ -3502,7 +3710,7 @@ function box(title, cap, inner){
   return '<div class="chartbox"><h3>'+esc(title)+'</h3>'+(cap ? '<p class="cap">'+esc(cap)+'</p>' : '')+inner+'</div>';
 }
 
-function weightGeom(ws, keys){
+function weightGeom(ws, keys, minPad){
   var k0 = keys[0].split('-'), k1 = keys[keys.length - 1].split('-');
   var x0 = new Date(+k0[0], +k0[1]-1, +k0[2]).getTime();
   var x1 = new Date(+k1[0], +k1[1]-1, +k1[2]).getTime() + 86400000;
@@ -3510,21 +3718,24 @@ function weightGeom(ws, keys){
   if (!pts.length) return null;
   var vs = pts.map(function(p){ return p.v; });
   var mn = Math.min.apply(null, vs), mx = Math.max.apply(null, vs);
-  var pad = Math.max(0.05, (mx - mn) * 0.3);
+  var pad = Math.max(minPad || 0.05, (mx - mn) * 0.3);
   return { pts:pts, x0:x0, x1:x1, mn:mn, mx:mx, lo:mn - pad, hi:mx + pad };
 }
-function weightSVG(ws, keys){
-  var g = weightGeom(ws, keys);
+/** Línea de una medida en el tiempo. Por defecto el peso; o = { kind, fmt, unit, label, pad } para otras (respiraciones). */
+function weightSVG(ws, keys, o){
+  o = o || {};
+  var fmtV = o.fmt || fmtKg, unitV = o.unit || ' kg';
+  var g = weightGeom(ws, keys, o.pad);
   if (!g) return null;
   var W = 320, H = 110, L = 34, R = 6, T = 8, B = 16;
   function X(t){ return L + (t - g.x0) / (g.x1 - g.x0) * (W - L - R); }
   function Y(v){ return T + (1 - (v - g.lo) / (g.hi - g.lo)) * (H - T - B); }
-  var col = kcolor('peso');
-  var s = '<svg viewBox="0 0 '+W+' '+H+'" role="img" aria-label="Evolución del peso">';
+  var col = kcolor(o.kind || 'peso');
+  var s = '<svg viewBox="0 0 '+W+' '+H+'" role="img" aria-label="'+esc(o.label || 'Evolución del peso')+'">';
   [g.mn, g.mx].forEach(function(v, i){
     if (i && g.mx === g.mn) return;
     s += '<line x1="'+L+'" x2="'+(W-R)+'" y1="'+Y(v).toFixed(1)+'" y2="'+Y(v).toFixed(1)+'" stroke="var(--line)" stroke-dasharray="3 3"/>' +
-         '<text x="'+(L-4)+'" y="'+(Y(v)+3).toFixed(1)+'" font-size="8.5" fill="var(--ink-3)" text-anchor="end">'+fmtKg(v)+'</text>';
+         '<text x="'+(L-4)+'" y="'+(Y(v)+3).toFixed(1)+'" font-size="8.5" fill="var(--ink-3)" text-anchor="end">'+fmtV(v)+'</text>';
   });
   if (g.pts.length > 1) s += '<polyline fill="none" stroke="'+col+'" stroke-width="2" stroke-linejoin="round" stroke-linecap="round" points="' +
     g.pts.map(function(p){ return X(p.t).toFixed(1) + ',' + Y(p.v).toFixed(1); }).join(' ') + '"/>';
@@ -3533,7 +3744,7 @@ function weightSVG(ws, keys){
     s += '<circle cx="'+X(p.t).toFixed(1)+'" cy="'+Y(p.v).toFixed(1)+'" r="'+(last ? 3.8 : 2.6)+'" fill="'+(last ? col : 'var(--surface)')+'" stroke="'+col+'" stroke-width="1.6"/>';
   });
   var lp = g.pts[g.pts.length - 1], lx = X(lp.t);
-  s += '<text x="'+Math.min(lx, W - R - 2).toFixed(1)+'" y="'+Math.max(9, Y(lp.v) - 7).toFixed(1)+'" font-size="9" font-weight="700" fill="'+col+'" text-anchor="'+(lx > W - 40 ? 'end' : 'middle')+'">'+fmtKg(lp.v)+' kg</text>';
+  s += '<text x="'+Math.min(lx, W - R - 2).toFixed(1)+'" y="'+Math.max(9, Y(lp.v) - 7).toFixed(1)+'" font-size="9" font-weight="700" fill="'+col+'" text-anchor="'+(lx > W - 40 ? 'end' : 'middle')+'">'+fmtV(lp.v)+unitV+'</text>';
   [keys[0], keys[Math.floor(keys.length / 2)], keys[keys.length - 1]].forEach(function(k, i){
     var p = k.split('-'), t = new Date(+p[0], +p[1]-1, +p[2]).getTime() + 43200000;
     s += '<text x="'+X(t).toFixed(1)+'" y="'+(H-3)+'" font-size="8.5" fill="var(--ink-3)" text-anchor="'+(i === 0 ? 'start' : (i === 2 ? 'end' : 'middle'))+'">'+esc(shortDate(k))+'</text>';
@@ -3571,7 +3782,7 @@ function renderStats(){
     bindStats(v, tr); return;
   }
 
-  var kinds = trackerById(tr).kinds.filter(function(k){ return tagsOf(tr).some(function(t){ return t.kind === k; }); });
+  var kinds = trackerById(tr).kinds.filter(function(k){ return !kindOf(k).breath && tagsOf(tr).some(function(t){ return t.kind === k; }); });
   if (tr === 'dieta'){
     var units = Object.keys(agg(ev).units);
     var wsvg = weightSVG(weightsOf(), barKeys.concat([today]));
@@ -3610,8 +3821,14 @@ function renderStats(){
              tr === 'asma' && strip ? 'Debajo, los días con medicación: así ves si coincide con menos tos. Un círculo hueco es un día en que todas las tomas fueron dudosas por un vómito.' :
              (tr === 'medicacion' && ev.some(function(e){ return medLinks().byMed[e.id]; }) ? 'En tono claro, las tomas seguidas de un vómito en las 2 horas siguientes; el triángulo marca esos días.' : null),
              daily + legendHTML(kinds) + (strip ? '<div style="margin-top:10px">'+strip+'</div>' : ''));
+    if (tr === 'asma'){
+      var rsv = respOf(ev), sgr = signRows(ev);
+      var rsvg = rsv.length ? weightSVG(rsv, barKeys, { kind:'resp', fmt:function(x){ return String(Math.round(x)); }, unit:'/min', label:'Respiraciones durmiendo', pad:2 }) : null;
+      if (rsvg || sgr.length) h += box('Respiración durmiendo', rsvg ? 'Respiraciones en 60 s: cada punto es una medición.' + (sgr.length ? ' Debajo, cuántas veces marcaste cada signo.' : '') : 'Cuántas veces marcaste cada signo.',
+        (rsvg || '') + (sgr.length ? '<div style="margin-top:' + (rsvg ? 12 : 0) + 'px">' + hbars(sgr) + '</div>' : ''));
+    }
   }
-  var hs = hourSpread(ev);
+  var hs = hourSpread(tr === 'asma' ? ev.filter(isEpisode) : ev);
   if (hs.rows.some(function(r){ return r.segs[0].v || r.segs[1].v; })){
     h += box('A qué horas', hs.nAp ? plural(hs.nAp, 'registro tiene', 'registros tienen') + ' franja; su parte se reparte entre las horas posibles, en tono claro.' : 'Reparto de los registros del periodo.',
              barsSVG(hs.rows, tr, { every:3, h:70, label:'Por hora' }));
@@ -3731,10 +3948,11 @@ function renderSettings(){
   }).join('') + '</div>';
   h += '<p class="tiny muted" style="margin:0 2px 9px">' + (st === 'dieta' ?
     'En cada comida pon la ración habitual y sus kcal (vienen en el envase). Si cambias las kcal de una comida, se recalculan también los días pasados; si cambias de producto, mejor crea una etiqueta nueva. «Peso» se anota en kilos con dos decimales. «Duración» es para lo que va con franja, como el comedero vacío.' :
+    st === 'asma' ? 'El tamaño del botón sigue al tamaño que elijas. «Respiraciones» es la casilla de respiraciones en 60 s de «Respiración durmiendo»; «Signo», cada casilla marcable de ese apartado, con su descripción.' :
     'El tamaño del botón sigue al tamaño que elijas.') + '</p>';
   var kinds = trackerById(st).kinds;
   S.tags.forEach(function(t, i){
-    if ((t.tracker || 'arenero') !== st) return;
+    if ((t.tracker || 'arenero') !== st || t.archived) return;
     var isFood = t.kind === 'comida';
     h += '<div class="row tagrow">' +
       '<span class="grip"><button data-mv="up" data-i="'+i+'" aria-label="Subir">'+ICON.up+'</button><button data-mv="down" data-i="'+i+'" aria-label="Bajar">'+ICON.down+'</button></span>' +
@@ -3750,6 +3968,7 @@ function renderSettings(){
         '<label class="wide">Cómo es la ración (opcional)<input type="text" data-tpn="'+i+'" value="'+esc(t.portion || '')+'" placeholder="p. ej. 8 croquetas"></label>' +
         (Number(t.kcal) > 0 ? '' : '<p class="kmiss">Sin kcal: no cuenta en las calorías.</p>') +
       '</div>' : '') +
+      (t.kind === 'signo' ? '<div class="foodopts"><label class="wide">Descripción (sale al desplegarla)<input type="text" data-tds="'+i+'" value="'+esc(t.desc || '')+'" placeholder="Qué significa"></label></div>' : '') +
       '</div>';
   });
   h += '<button class="addbtn" id="addTag">+ Añadir etiqueta en '+esc(trackerById(st).label)+'</button></div>';
@@ -3834,6 +4053,7 @@ function bindSettings(){
     var t = S.tags[+sel.dataset.tk]; t.kind = sel.value;
     if (t.kind === 'comida'){ if (!t.unit || t.unit === 'kg'){ t.unit = 'g'; t.qty = t.qty || 10; } }
     else if (t.kind === 'peso'){ t.unit = 'kg'; delete t.qty; }
+    else if (t.kind === 'resp'){ t.unit = 'por min'; delete t.qty; }
     else { delete t.unit; delete t.qty; }
     reSet();
   }); });
@@ -3849,6 +4069,11 @@ function bindSettings(){
   v.querySelectorAll('[data-tpn]').forEach(function(inp){ inp.addEventListener('change', function(){
     var t = S.tags[+inp.dataset.tpn], txt = inp.value.trim();
     if (txt) t.portion = txt; else delete t.portion;
+    saveCfg(); S.logSig = '';
+  }); });
+  v.querySelectorAll('[data-tds]').forEach(function(inp){ inp.addEventListener('change', function(){
+    var t = S.tags[+inp.dataset.tds], txt = inp.value.trim();
+    if (txt) t.desc = txt; else delete t.desc;
     saveCfg(); S.logSig = '';
   }); });
   v.querySelectorAll('[data-tq]').forEach(function(inp){ inp.addEventListener('change', function(){
@@ -4151,8 +4376,19 @@ function paintPdf(JsPDF, o, R, set, trs, shots, imgs){
         h2(tr === 'asma' ? 'Episodios por día' : (tr === 'arenero' ? 'Visitas por día' : 'Tomas por día'));
         bars(dailyRows(tr, barKeys), tr, 26, { dates:true });
         if (tr === 'asma' || tr === 'arenero') medStrip(barKeys);
+        if (tr === 'asma'){
+          var prs = respOf(es), psg = signRows(es);
+          if (prs.length || psg.length){
+            h2('Respiración durmiendo', prs.length ? 'respiraciones en 60 s' : null);
+            if (prs.length){
+              var pv = prs.map(function(r){ return r.v; }), psum = 0; pv.forEach(function(x){ psum += x; });
+              text(plural(pv.length, 'medición', 'mediciones') + ': media ' + Math.round(psum / pv.length) + ' por minuto, mínimo ' + Math.min.apply(null, pv) + ', máximo ' + Math.max.apply(null, pv) + '. Última: ' + prs[prs.length - 1].v + ' (' + shortDate(dayKey(new Date(prs[prs.length - 1].t))) + ', ' + hhmm(new Date(prs[prs.length - 1].t)) + ').', 8.8);
+            }
+            if (psg.length){ text('Signos marcados (veces):', 8.3, PC.mid); hbarList(psg); }
+          }
+        }
       }
-      var hs = hourSpread(es);
+      var hs = hourSpread(tr === 'asma' ? es.filter(isEpisode) : es);
       if (hs.rows.some(function(r){ return r.segs[0].v || r.segs[1].v; })){
         h2('A qué horas', hs.nAp ? 'en claro, lo repartido de las franjas' : null);
         bars(hs.rows, tr, 18, { every:3 });
@@ -4299,7 +4535,7 @@ $('#vidCamInput').addEventListener('change', onPick($('#vidCamInput')));
 function bootApp(){
   return loadMeta().then(function(){ return idbGet('kv','config'); }).then(function(cfg){
     var c = cfg ? migrateConfig(cfg) : Object.assign(normConfig({ tags:defaultTags(), places:defaultPlaces() }), { _changed:true });
-    var changed = c._changed; S._conv = c._convert || null; delete c._changed; delete c._convert; c.v = 8;
+    var changed = c._changed; S._conv = c._convert || null; delete c._changed; delete c._convert; c.v = 9;
     return idbPut('kv', c, 'config').then(function(){ applyConfig(c); return changed && cfg ? enqueue({ t:'config', id:'config' }) : null; });
   }).then(function(){ return idbAll('entries'); }).then(function(list){
     var norm = list.map(normEntry), fix = [], conv = S._conv, convIds = [];
